@@ -103,7 +103,7 @@ O_KHB = pygame.image.load(os.path.join(hit_keysB,"Orange.png")).convert_alpha()
 
 def draw_background(fps):
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
-    window.blit(cuerda_anim[str(int(fps))])
+    window.blit(cuerda_anim[str(int(fps))], (0,0))
     window.blit(traste,(0,0))
 
     teclas = pygame.key.get_pressed()
