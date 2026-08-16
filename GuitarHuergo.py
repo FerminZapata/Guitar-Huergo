@@ -104,6 +104,27 @@ Y_KHB = pygame.image.load(os.path.join(hit_keysB,"Yellow.png")).convert_alpha()
 B_KHB = pygame.image.load(os.path.join(hit_keysB,"Blue.png")).convert_alpha()
 O_KHB = pygame.image.load(os.path.join(hit_keysB,"Orange.png")).convert_alpha()
 
+# Notas
+note_assets = os.path.join(assets, "Notes")
+
+# Notas normales
+note = os.path.join(note_assets, "Normal")
+
+notes = {"G":pygame.image.load(os.path.join(note,"Green.png")).convert_alpha(),
+         "R":pygame.image.load(os.path.join(note,"Red.png")).convert_alpha(),
+         "Y":pygame.image.load(os.path.join(note,"Yellow.png")).convert_alpha(),
+         "B":pygame.image.load(os.path.join(note,"Blue.png")).convert_alpha(),
+         "O":pygame.image.load(os.path.join(note,"Orange.png")).convert_alpha()}
+
+# Notas brillantes
+notel = os.path.join(note_assets, "Normal Light")
+
+Lnotes = {"G":pygame.image.load(os.path.join(notel,"Green.png")).convert_alpha(),
+         "R":pygame.image.load(os.path.join(notel,"Red.png")).convert_alpha(),
+         "Y":pygame.image.load(os.path.join(notel,"Yellow.png")).convert_alpha(),
+         "B":pygame.image.load(os.path.join(notel,"Blue.png")).convert_alpha(),
+         "O":pygame.image.load(os.path.join(notel,"Orange.png")).convert_alpha()}
+
 def draw_background(fps):
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
 
@@ -153,7 +174,14 @@ def draw_background(fps):
     else:
         window.blit(O_K, pos_def)
 
+def create_note(): # PARA ARREGLAR
+    #size = (Lnotes["G"].get_width()/9, Lnotes["G"].get_height()/9)
+    #G = pygame.transform.scale(Lnotes["G"], size)
+    #window.blit(G, (652,430))
+    return
+
 bgr_fps = 0 # contador que se encarga de la animacion del traste
+
 
 while True:
     for event in pygame.event.get():
@@ -164,6 +192,8 @@ while True:
             exit() # se termina el programa
     
     draw_background(bgr_fps)
+
+    create_note()
 
     bgr_fps += 0.5 # con esta variable se puede controlar la velocidad de la animacion (bpm?)
 
