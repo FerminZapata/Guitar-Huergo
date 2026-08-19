@@ -174,12 +174,6 @@ def draw_background(fps):
     else:
         window.blit(O_K, pos_def)
 
-def create_note(): # PARA ARREGLAR
-    #size = (Lnotes["G"].get_width()/9, Lnotes["G"].get_height()/9)
-    #G = pygame.transform.scale(Lnotes["G"], size)
-    #window.blit(G, (652,430))
-    return
-
 bgr_fps = 0 # contador que se encarga de la animacion del traste
 
 
