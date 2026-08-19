@@ -187,8 +187,6 @@ while True:
     
     draw_background(bgr_fps)
 
-    create_note()
-
     bgr_fps += 0.5 # con esta variable se puede controlar la velocidad de la animacion (bpm?)
 
     if bgr_fps > 47:
