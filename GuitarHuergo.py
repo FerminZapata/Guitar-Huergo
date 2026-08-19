@@ -1,4 +1,4 @@
-import pygame, os
+import pygame, os, math
 
 width = 1500
 height = 900
@@ -174,8 +174,42 @@ def draw_background(fps):
     else:
         window.blit(O_K, pos_def)
 
+
+#notea = notes["G"]
+#notea = pygame.transform.scale(notea, (notea.get_width()/10, notea.get_height()/10))
+#window.blit(notea, (655,430))
+#noteb = notes["G"]
+#noteb = pygame.transform.scale(noteb, (noteb.get_width()/4, noteb.get_height()/4))
+#window.blit(noteb, (483,750))
+
+#THIS FUCKING SHIT NEEDS FIXING
+
+def draw_notes(lista):
+    for note in lista:
+        temp = pygame.transform.scale(note["note"], (note["note"].get_width()/note["scale"],note["note"].get_height()/note["scale"]))
+        window.blit(temp, note["pos"])
+        if note["color"] == "green":
+            x = note["pos"][0]-483
+            y = 750-note["pos"][1]
+            print(x,y)
+            hip = math.sqrt(math.pow(x,2)+math.pow(y,2))
+            print(hip)
+            angle = math.fabs(math.degrees(math.asin(y/hip)))
+            print(angle)
+            new_y = math.fabs(math.sin(angle) * (hip))
+            new_x = math.fabs(math.cos(angle) * (hip))
+            print(new_x, new_y)
+            note["pos"] = (new_x,new_y)
+    return lista
+
 bgr_fps = 0 # contador que se encarga de la animacion del traste
 
+drawable_notes = [{
+    "note":notes["G"],
+    "color":"green",
+    "pos":(655,430),
+    "scale":10
+}] # Lista que almacena las notas actuales
 
 while True:
     for event in pygame.event.get():
@@ -184,8 +218,10 @@ while True:
         if event.type == pygame.QUIT: # En caso de que el evento sea el que detecta un intento de cierre
             pygame.quit() # se cierra el pygame.init()
             exit() # se termina el programa
-    
+
     draw_background(bgr_fps)
+
+    drawable_notes = draw_notes(drawable_notes)
 
     bgr_fps += 0.5 # con esta variable se puede controlar la velocidad de la animacion (bpm?)
 
