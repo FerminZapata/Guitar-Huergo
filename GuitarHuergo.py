@@ -1,4 +1,4 @@
-import pygame, os, math
+import pygame, os
 
 width = 1500
 height = 900
@@ -12,6 +12,39 @@ assets = os.path.join(os.path.dirname(__file__), "Assets")
 # Para que no se joda la performance del juego, primero se cargan los assets para no tener que cargarlos individualmente despues (aclaracion)
 # Esto beneficia los fps del juego ya que si se tienen que cargar muchos assets por cada vuelta en el loop principal
 # los fps van a disminuir, ya que el programa esta cargando todos los assets cada milesima de segundo 
+
+class Note_Class:
+    def __init__(self, surf, row):
+        self.row = row
+        self.surf = surf
+        self.add = 0
+        if row == 0:
+            self.pos = (655,430)
+        elif row == 1:
+            self.pos = (695,430)
+        elif row == 2:
+            self.pos = (730,430)
+        elif row == 3:
+            self.pos = (765,430)
+        elif row == 4:
+            self.pos = (800,430)
+
+    def update(self):
+        if self.pos[1] != 900:
+            spd = 0.5
+            note = pygame.transform.scale(self.surf, ((self.surf.get_width()/10) + self.add, (self.surf.get_height()/10) + self.add))
+            if self.row == 0:
+                self.pos = (self.pos[0]-4.3*spd,self.pos[1]+8*spd)
+            elif self.row == 1:
+                self.pos = (self.pos[0]-2.8*spd,self.pos[1]+8*spd)
+            elif self.row == 2:
+                self.pos = (self.pos[0]-0.9*spd,self.pos[1]+8*spd)
+            elif self.row == 3:
+                self.pos = (self.pos[0]+1*spd,self.pos[1]+8*spd)
+            elif self.row == 4:
+                self.pos = (self.pos[0]+2.6*spd,self.pos[1]+8*spd)
+            self.add += 1.8*spd
+            window.blit(note,self.pos)
 
 # Background assets
 bgnd_assets = os.path.join(assets, "Background")  # acceso a la ruta con los assets
@@ -108,13 +141,13 @@ O_KHB = pygame.image.load(os.path.join(hit_keysB,"Orange.png")).convert_alpha()
 note_assets = os.path.join(assets, "Notes")
 
 # Notas normales
-note = os.path.join(note_assets, "Normal")
+note_folder = os.path.join(note_assets, "Normal")
 
-notes = {"G":pygame.image.load(os.path.join(note,"Green.png")).convert_alpha(),
-         "R":pygame.image.load(os.path.join(note,"Red.png")).convert_alpha(),
-         "Y":pygame.image.load(os.path.join(note,"Yellow.png")).convert_alpha(),
-         "B":pygame.image.load(os.path.join(note,"Blue.png")).convert_alpha(),
-         "O":pygame.image.load(os.path.join(note,"Orange.png")).convert_alpha()}
+notes = {"G":pygame.image.load(os.path.join(note_folder,"Green.png")).convert_alpha(),
+         "R":pygame.image.load(os.path.join(note_folder,"Red.png")).convert_alpha(),
+         "Y":pygame.image.load(os.path.join(note_folder,"Yellow.png")).convert_alpha(),
+         "B":pygame.image.load(os.path.join(note_folder,"Blue.png")).convert_alpha(),
+         "O":pygame.image.load(os.path.join(note_folder,"Orange.png")).convert_alpha()}
 
 # Notas brillantes
 notel = os.path.join(note_assets, "Normal Light")
@@ -174,7 +207,6 @@ def draw_background(fps):
     else:
         window.blit(O_K, pos_def)
 
-
 #notea = notes["G"]
 #notea = pygame.transform.scale(notea, (notea.get_width()/10, notea.get_height()/10))
 #window.blit(notea, (655,430))
@@ -182,34 +214,17 @@ def draw_background(fps):
 #noteb = pygame.transform.scale(noteb, (noteb.get_width()/4, noteb.get_height()/4))
 #window.blit(noteb, (483,750))
 
-#THIS FUCKING SHIT NEEDS FIXING
-
 def draw_notes(lista):
-    for note in lista:
-        temp = pygame.transform.scale(note["note"], (note["note"].get_width()/note["scale"],note["note"].get_height()/note["scale"]))
-        window.blit(temp, note["pos"])
-        if note["color"] == "green":
-            x = note["pos"][0]-483
-            y = 750-note["pos"][1]
-            print(x,y)
-            hip = math.sqrt(math.pow(x,2)+math.pow(y,2))
-            print(hip)
-            angle = math.fabs(math.degrees(math.asin(y/hip)))
-            print(angle)
-            new_y = math.fabs(math.sin(angle) * (hip))
-            new_x = math.fabs(math.cos(angle) * (hip))
-            print(new_x, new_y)
-            note["pos"] = (new_x,new_y)
-    return lista
+    if len(lista) != 0:
+        for i in lista:
+            if i.pos[1] >= 900:
+                del i
+            else:
+                i.update()
 
 bgr_fps = 0 # contador que se encarga de la animacion del traste
 
-drawable_notes = [{
-    "note":notes["G"],
-    "color":"green",
-    "pos":(655,430),
-    "scale":10
-}] # Lista que almacena las notas actuales
+drawable_notes = [] # Lista que almacena las notas actuales
 
 while True:
     for event in pygame.event.get():
@@ -218,10 +233,26 @@ while True:
         if event.type == pygame.QUIT: # En caso de que el evento sea el que detecta un intento de cierre
             pygame.quit() # se cierra el pygame.init()
             exit() # se termina el programa
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                note = Note_Class(notes["G"],0)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_w:
+                note = Note_Class(notes["R"],1)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_e:
+                note = Note_Class(notes["Y"],2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_r:
+                note = Note_Class(notes["B"],3)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_t:
+                note = Note_Class(notes["O"],4)
+                drawable_notes.append(note)
 
     draw_background(bgr_fps)
 
-    drawable_notes = draw_notes(drawable_notes)
+    draw_notes(drawable_notes)
 
     bgr_fps += 0.5 # con esta variable se puede controlar la velocidad de la animacion (bpm?)
 
