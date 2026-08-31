@@ -14,21 +14,27 @@ assets = os.path.join(os.path.dirname(__file__), "Assets")
 # los fps van a disminuir, ya que el programa esta cargando todos los assets cada milesima de segundo 
 
 class Note_Class:
-    def __init__(self, surf, row,spd):
-        self.spd = spd
+    def __init__(self, surf, row, bpm):
+        self.spd = (bpm/60)
         self.row = row
         self.surf = surf
         self.add = 0
         if row == 0:
             self.pos = (655,420)
+            # (465,770)
         elif row == 1:
             self.pos = (695,420)
+            # (573,770)
         elif row == 2:
             self.pos = (730,420)
+            # (690,770)
         elif row == 3:
             self.pos = (765,420)
+            # (805,770)
         elif row == 4:
             self.pos = (800,420)
+            # (925,770)
+    #pygame.transform.scale(noteb, ((noteb.get_width()/10)+75, (noteb.get_height()/10)))
 
     def update(self):
         if self.pos[1] != 900:
@@ -47,17 +53,36 @@ class Note_Class:
             self.spd += 0.005
             window.blit(note,self.pos)
 
-class Trast:
-    print("hola")
+class Fret:
+    def __init__(self, surf, bpm):
+        self.spd = (bpm/60)
+        self.surf = surf
+        self.add = 0
+        self.pos = (width/2 - background.get_width()/2,height - background.get_height())
+        # (690,770)
+    #pygame.transform.scale(noteb, ((noteb.get_width()/10)+75, (noteb.get_height()/10)))
+
+    def update(self):
+        if self.pos[1] != 900:
+            note = pygame.transform.scale(self.surf, ((self.surf.get_width()) + self.add, (self.surf.get_height()) + self.add))
+            self.pos = (self.pos[0]-0.9*self.spd,self.pos[1]+8*self.spd)
+            self.add += 1.8*self.spd
+            self.spd += 0.005
+            window.blit(note,self.pos)
 
 # Background assets
 bgnd_assets = os.path.join(assets, "Background")  # acceso a la ruta con los assets
 
-traste = pygame.image.load(os.path.join(bgnd_assets,"Back.png")).convert_alpha()  # carga y guarda la imagen
+background = pygame.image.load(os.path.join(bgnd_assets,"Back.png")).convert_alpha()  # carga y guarda la imagen
 
 # pygame.image.load() sirve para cargar imagenes.
 # Para cargar una imagen hay que escribir la ruta de esta adentro de los parentesis
 # .convert_alpha() es utilizado para procesar todos los pixeles de la imagen más rapido
+
+fret = {0:pygame.image.load(os.path.join(bgnd_assets,"Traste0.png")).convert_alpha(),
+        1:pygame.image.load(os.path.join(bgnd_assets,"Traste0.png")).convert_alpha(),
+        2:pygame.image.load(os.path.join(bgnd_assets,"Traste0.png")).convert_alpha(),
+        3:pygame.image.load(os.path.join(bgnd_assets,"Traste1.png")).convert_alpha()}
 
 # Teclas
 key_assets = os.path.join(assets, "Keys") # guarda la ruta con los assets
@@ -110,23 +135,25 @@ Lnotes = {"G":pygame.image.load(os.path.join(notel,"Green.png")).convert_alpha()
          "B":pygame.image.load(os.path.join(notel,"Blue.png")).convert_alpha(),
          "O":pygame.image.load(os.path.join(notel,"Orange.png")).convert_alpha()}
 
-def draw_background(fps):
+def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
 
     # .fill() sirve para pintar toda una ventana de un solo color.
     # Se puede poner tanto un valor RGB como el nombre del color en minusculas.
 
-    pos_def = (width/2 - traste.get_width()/2,height - traste.get_height()) # variable que almacena la posicion de las superficies
+    pos_def = (width/2 - background.get_width()/2,height - background.get_height()) # variable que almacena la posicion de las superficies
 
+    if len(frets) != 1:
+        for surf in frets:
+            surf.update()
     # En este caso fps es convertido en int y en string es para que pueda cumplir con los rangos del diccionario, ya que
     # por defecto, este es un numero decimal
-    window.blit(traste,pos_def)
+    window.blit(background,pos_def)
     # .blit(sur, pos) sirve para dibujar una superficie en la ventana, window siendo la ventana en este caso
     # sur = superficie que se va a dibujar (puede ser tanto una recta que dibuja el juego o una imagen)
     # pos = posicion de la superficie
 
     teclas = pygame.key.get_pressed() # se obtiene una lista booleana con todas las teclas almacenadas (True = tecla presionada)
-
 
     if teclas[pygame.K_a] and teclas[pygame.K_SPACE] or teclas[pygame.K_a] and gamepad_mode: # se accede al valor booleano mediante la variable y pygame.nombre_de_la_tecla
         window.blit(G_KHB, pos_def) # se dibuja la imagen de la tecla siendo presionada
@@ -159,13 +186,6 @@ def draw_background(fps):
     else:
         window.blit(O_K, pos_def)
 
-#notea = notes["G"]
-#notea = pygame.transform.scale(notea, (notea.get_width()/10, notea.get_height()/10))
-#window.blit(notea, (655,430))
-#noteb = notes["G"]
-#noteb = pygame.transform.scale(noteb, (noteb.get_width()/4, noteb.get_height()/4))
-#window.blit(noteb, (483,750))
-
 def draw_notes(lista):
     if len(lista) != 0:
         for i in lista:
@@ -174,11 +194,17 @@ def draw_notes(lista):
             else:
                 i.update()
 
-bgr_fps = 0 # contador que se encarga de la animacion del traste
-
 drawable_notes = [] # Lista que almacena las notas actuales
 
 gamepad_mode = True
+
+current_fret = 0
+
+frets = []
+
+o_time = pygame.time.get_ticks()
+
+bpm = 30
 
 while True:
     for event in pygame.event.get():
@@ -189,29 +215,33 @@ while True:
             exit() # se termina el programa
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_q:
-                note = Note_Class(notes["G"],0,0.5)
-                drawable_notes.append(note)
+                note = Note_Class(notes["G"],0,bpm)
+                drawable_notes.insert(0,note)
             elif event.key == pygame.K_w:
-                note = Note_Class(notes["R"],1,0.5)
-                drawable_notes.append(note)
+                note = Note_Class(notes["R"],1,bpm)
+                drawable_notes.insert(0,note)
             elif event.key == pygame.K_e:
-                note = Note_Class(notes["Y"],2,0.5)
-                drawable_notes.append(note)
+                note = Note_Class(notes["Y"],2,bpm)
+                drawable_notes.insert(0,note)
             elif event.key == pygame.K_r:
-                note = Note_Class(notes["B"],3,0.5)
-                drawable_notes.append(note)
+                note = Note_Class(notes["B"],3,bpm)
+                drawable_notes.insert(0,note)
             elif event.key == pygame.K_t:
-                note = Note_Class(notes["O"],4,0.5)
-                drawable_notes.append(note)
+                note = Note_Class(notes["O"],4,bpm)
+                drawable_notes.insert(0,note)
 
-    draw_background(bgr_fps)
+    if pygame.time.get_ticks() - o_time  >= 0:
+            o_time = pygame.time.get_ticks() + 1000
+            if current_fret != 3:
+                current_fret += 1
+            else:
+                current_fret = 0
+            temp = Fret(fret[current_fret],bpm)
+            frets.insert(0,temp)
+
+    draw_background()
 
     draw_notes(drawable_notes)
 
-    bgr_fps += 0.5 # con esta variable se puede controlar la velocidad de la animacion (bpm?)
-
-    if bgr_fps > 47:
-        bgr_fps = 0
-    
     pygame.display.update() # se encarga de actualizar la ventana
     clock.tick(60) # son los fps (en pocas palabras)
