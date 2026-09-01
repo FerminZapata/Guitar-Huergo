@@ -18,38 +18,32 @@ class Note_Class:
         self.spd = (bpm/60)
         self.row = row
         self.surf = surf
-        self.add = 0
+        self.add = 0.1
         if row == 0:
             self.pos = (655,420)
-            # (465,770)
         elif row == 1:
             self.pos = (695,420)
-            # (573,770)
         elif row == 2:
             self.pos = (730,420)
-            # (690,770)
         elif row == 3:
             self.pos = (765,420)
-            # (805,770)
         elif row == 4:
             self.pos = (800,420)
-            # (925,770)
-    #pygame.transform.scale(noteb, ((noteb.get_width()/10)+75, (noteb.get_height()/10)))
 
     def update(self):
         if self.pos[1] != 900:
-            note = pygame.transform.scale(self.surf, ((self.surf.get_width()/10) + self.add, (self.surf.get_height()/10) + self.add))
+            note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
             if self.row == 0:
-                self.pos = (self.pos[0]-4.3*self.spd,self.pos[1]+8*self.spd)
+                self.pos = (self.pos[0]-4.5*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 1:
                 self.pos = (self.pos[0]-2.8*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 2:
-                self.pos = (self.pos[0]-0.9*self.spd,self.pos[1]+8*self.spd)
+                self.pos = (self.pos[0]-1*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 3:
                 self.pos = (self.pos[0]+1*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 4:
-                self.pos = (self.pos[0]+2.6*self.spd,self.pos[1]+8*self.spd)
-            self.add += 1.8*self.spd
+                self.pos = (self.pos[0]+2.7*self.spd,self.pos[1]+8*self.spd)
+            self.add += 0.005*self.spd
             self.spd += 0.005
             window.blit(note,self.pos)
 
@@ -57,16 +51,14 @@ class Fret:
     def __init__(self, surf, bpm):
         self.spd = (bpm/60)
         self.surf = surf
-        self.add = 0
-        self.pos = (width/2 - background.get_width()/2,height - background.get_height())
-        # (690,770)
-    #pygame.transform.scale(noteb, ((noteb.get_width()/10)+75, (noteb.get_height()/10)))
+        self.add = 0.42
+        self.pos = (650,445)
 
     def update(self):
-        if self.pos[1] != 900:
-            note = pygame.transform.scale(self.surf, ((self.surf.get_width()) + self.add, (self.surf.get_height()) + self.add))
-            self.pos = (self.pos[0]-0.9*self.spd,self.pos[1]+8*self.spd)
-            self.add += 1.8*self.spd
+        if self.pos[1] < 900:
+            note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
+            self.pos = (self.pos[0]-4.3*self.spd,self.pos[1]+9*self.spd)
+            self.add += 0.02*self.spd
             self.spd += 0.005
             window.blit(note,self.pos)
 
@@ -145,7 +137,10 @@ def draw_background():
 
     if len(frets) != 1:
         for surf in frets:
-            surf.update()
+            if surf.pos[1] >= 900:
+                del surf
+            else:
+                surf.update()
     # En este caso fps es convertido en int y en string es para que pueda cumplir con los rangos del diccionario, ya que
     # por defecto, este es un numero decimal
     window.blit(background,pos_def)
@@ -198,13 +193,13 @@ drawable_notes = [] # Lista que almacena las notas actuales
 
 gamepad_mode = True
 
-current_fret = 0
+current_fret = 2
 
 frets = []
 
 o_time = pygame.time.get_ticks()
 
-bpm = 30
+bpm = 60
 
 while True:
     for event in pygame.event.get():
@@ -231,13 +226,13 @@ while True:
                 drawable_notes.insert(0,note)
 
     if pygame.time.get_ticks() - o_time  >= 0:
-            o_time = pygame.time.get_ticks() + 1000
-            if current_fret != 3:
-                current_fret += 1
-            else:
-                current_fret = 0
-            temp = Fret(fret[current_fret],bpm)
-            frets.insert(0,temp)
+        o_time = pygame.time.get_ticks() + (bpm * 60)/4
+        if current_fret != 3:
+            current_fret += 1
+        else:
+            current_fret = 0
+        temp = Fret(fret[current_fret],bpm)
+        frets.insert(0,temp)
 
     draw_background()
 
