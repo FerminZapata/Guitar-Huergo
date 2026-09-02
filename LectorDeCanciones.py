@@ -16,9 +16,23 @@ def createRuta(archivo):
         open(file_path, "w")
 
 def main():
-    rutaArchivo = createRuta("gastos.csv")
+    rutaArchivo = createRuta("notes.chart")
     print(rutaArchivo)
     return rutaArchivo
 
 def leerChart(chart):
-    
+    try:
+        rdblFile = []
+        with open(chart, "r", encoding="utf-8") as archivo:
+            for line in archivo:
+                tempVal = line.strip.split(" ")
+                rdblFile.append(line)
+        print(rdblFile)
+    except FileNotFoundError:
+        print("No se encontro el archivo.")
+        time.sleep(2)
+        return
+
+filepath = main()
+
+leerChart(filepath)
