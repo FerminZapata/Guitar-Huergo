@@ -22,15 +22,33 @@ def main():
 
 def leerChart(chart):
     try:
-        rdblFile = []
         with open(chart, "r", encoding="utf-8") as archivo:
-            for line in archivo:
-                if '{' in line or '}' in line:
-                    continue
+            rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'HardSingle': []}
+            contador = 0
+            for linea in archivo:
+                if "[Song]" in linea or "[SyncTrack]" in linea or "[Events]" in linea or "[HardSingle]" in linea:
+                    contador += 1
                 else:
-                    tempVal = line.strip().split(" ")
-                    rdblFile.append(tempVal)
-        rdblFile.pop(0)
+                    if contador == 1:
+                        if "{" in linea or "}" in linea: 
+                            continue
+                        else:
+                            rdblFile["Song"].append(linea.strip().split(" = "))
+                    elif contador == 2:
+                        if "{" in linea or "}" in linea: 
+                            continue
+                        else:
+                            rdblFile["SyncTrack"].append(str(linea.strip().split(" = ")))
+                    elif contador == 3:
+                        if "{" in linea or "}" in linea: 
+                            continue
+                        else:
+                            rdblFile["Events"].append(str(linea.strip().split(" = ")))
+                    elif contador == 4:
+                        if "{" in linea or "}" in linea: 
+                            continue
+                        else:
+                            rdblFile["HardSingle"].append(str(linea.strip().split(" = ")))
         print(rdblFile)
     except FileNotFoundError:
         print("No se encontro el archivo.")
