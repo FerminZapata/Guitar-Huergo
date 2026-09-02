@@ -25,8 +25,11 @@ def leerChart(chart):
         rdblFile = []
         with open(chart, "r", encoding="utf-8") as archivo:
             for line in archivo:
-                tempVal = line.strip().split(" ")
-                rdblFile.append(tempVal)
+                if '{' in line or '}' in line:
+                    continue
+                else:
+                    tempVal = line.strip().split(" ")
+                    rdblFile.append(tempVal)
         rdblFile.pop(0)
         print(rdblFile)
     except FileNotFoundError:
