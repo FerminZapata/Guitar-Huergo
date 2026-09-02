@@ -25,7 +25,7 @@ def leerChart(chart):
         rdblFile = []
         with open(chart, "r", encoding="utf-8") as archivo:
             for line in archivo:
-                tempVal = line.strip.split(" ")
+                tempVal = line.strip().split(" ")
                 rdblFile.append(line)
         print(rdblFile)
     except FileNotFoundError:
