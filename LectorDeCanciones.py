@@ -30,22 +30,22 @@ def leerChart(chart):
                     contador += 1
                 else:
                     if contador == 1:
-                        if "{" in linea or "}" in linea: 
+                        if "{" in linea or "}" in linea:
                             continue
                         else:
                             rdblFile["Song"].append(linea.strip().split(" = "))
                     elif contador == 2:
-                        if "{" in linea or "}" in linea: 
+                        if "{" in linea or "}" in linea:
                             continue
                         else:
                             rdblFile["SyncTrack"].append(str(linea.strip().split(" = ")))
                     elif contador == 3:
-                        if "{" in linea or "}" in linea: 
+                        if "{" in linea or "}" in linea:
                             continue
                         else:
                             rdblFile["Events"].append(str(linea.strip().split(" = ")))
                     elif contador == 4:
-                        if "{" in linea or "}" in linea: 
+                        if "{" in linea or "}" in linea:
                             continue
                         else:
                             rdblFile["HardSingle"].append(str(linea.strip().split(" = ")))
