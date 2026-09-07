@@ -1,10 +1,14 @@
-import pygame, os
+import pygame, os, LectorDeCanciones
+
+chart_File = LectorDeCanciones.main()
+
+chart = LectorDeCanciones.leerChart(chart_File)
 
 width = 1500
 height = 900
 
 pygame.init()
-window = pygame.display.set_mode((width,height))
+window = pygame.display.set_mode((width,height))|
 clock = pygame.time.Clock()
 
 assets = os.path.join(os.path.dirname(__file__), "Assets")
