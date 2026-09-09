@@ -27,7 +27,7 @@ clock = pygame.time.Clock()
 while ejecucion:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            ejecutando = False    
+            ejecucion = False    
     pygame.display.flip()
     clock.tick(60)
     mouse = pygame.mouse.get_pos()
