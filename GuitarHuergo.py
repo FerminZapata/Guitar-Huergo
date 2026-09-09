@@ -8,24 +8,33 @@ width = 1500
 height = 900
 
 pygame.init()
-window = pygame.display.set_mode((width,height))|
+window = pygame.display.set_mode((width,height))
 clock = pygame.time.Clock()
 
 assets = os.path.join(os.path.dirname(__file__), "Assets")
 
 notecol = pygame.Rect(500,750,500,2)
 
+note_dict = {pygame.K_a :"g_press",
+             pygame.K_s:"r_press",
+             pygame.K_j:"y_press",
+             pygame.K_k:"b_press",
+             pygame.K_o:"o_press",
+             pygame.K_SPACE:"space"}
+
 n_pressed = {"g_press":False,
              "r_press":False,
              "y_press":False,
              "b_press":False,
-             "o_press":False}
+             "o_press":False,
+             "space":False}
 
 n_held = {"g_press":False,
           "r_press":False,
           "y_press":False,
           "b_press":False,
-          "o_press":False}
+          "o_press":False,
+          "space":False}
 
 class Note_Class:
     def __init__(self, surf, row, bpm, note, typ):
@@ -34,7 +43,10 @@ class Note_Class:
         self.surf = surf
         self.type = typ
         self.note = note
-        self.add = 0.1
+        if row != 5:
+            self.add = 0.1
+        else:
+            self.add = 0.48
         self.rect = pygame.Rect(0,0,self.surf.get_width(),self.surf.get_height())
         if row == 0:
             self.pos = (655,420)
@@ -46,6 +58,8 @@ class Note_Class:
             self.pos = (765,420)
         elif row == 4:
             self.pos = (800,420)
+        elif row == 5:
+            self.pos = (653,435)
 
     def update(self):
         if self.pos[1] != 900:
@@ -61,8 +75,14 @@ class Note_Class:
                 self.pos = (self.pos[0]+1*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 4:
                 self.pos = (self.pos[0]+2.7*self.spd,self.pos[1]+8*self.spd)
-            self.add += 0.005*self.spd
-            self.spd += 0.005
+            elif self.row == 5:
+                self.pos = (self.pos[0]-4.2*self.spd,self.pos[1]+8*self.spd)
+            if self.row != 5:
+                self.add += 0.005*self.spd
+                self.spd += 0.005
+            else:
+                self.add += 0.022*self.spd
+                self.spd += 0.005
 
             # Actualizacion de la colision de la nota
             self.rect.x = self.pos[0]
@@ -129,6 +149,9 @@ O_KHB = pygame.image.load(os.path.join(hit_keysB,"Orange.png")).convert_alpha()
 
 # Notas
 note_assets = os.path.join(assets, "Notes")
+
+# Nota para la strumbar (espacio en teclado)
+strum_note = pygame.image.load(os.path.join(note_assets,"Strumnote.png")).convert_alpha()
 
 # Notas normales
 note_folder = os.path.join(note_assets, "Normal")
@@ -229,24 +252,14 @@ while True:
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
                 space_pressed = False
-            if event.key == pygame.K_a or event.key == pygame.K_a and gamepad_mode:
-                n_pressed["g_press"] = "none"
-                n_held["g_press"] = "none"
-            if event.key == pygame.K_s or event.key == pygame.K_s and gamepad_mode:
-                n_pressed["r_press"] = "none"
-                n_held["r_press"] = "none"
-            if event.key == pygame.K_j or event.key == pygame.K_j and gamepad_mode:
-                n_pressed["y_press"] = "none"
-                n_held["y_press"] = "none"
-            if event.key == pygame.K_k or event.key == pygame.K_k and gamepad_mode:
-                n_pressed["b_press"] = "none"
-                n_held["b_press"] = "none"
-            if event.key == pygame.K_l or event.key == pygame.K_l and gamepad_mode:
-                n_pressed["o_press"] = "none"
-                n_held["o_press"] = "none"
+            for key in note_dict:
+                if event.key == key and space_pressed or  event.key == key and gamepad_mode:
+                    n_pressed[note_dict[key]] = "none"
+                    n_held[note_dict[key]] = "noe"
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
             if event.key == pygame.K_SPACE:
+                n_pressed["space"] = "normal"
                 space_pressed = True
             if event.key == pygame.K_KP0:
                 note = Note_Class(notes["G"],0,bpm,"g","nn")
@@ -278,31 +291,15 @@ while True:
             elif event.key == pygame.K_KP9:
                 note = Note_Class(Lnotes["O"],4,bpm,"o","nl")
                 drawable_notes.insert(0,note)
-            if event.key == pygame.K_a and space_pressed or event.key == pygame.K_a and gamepad_mode:
-                n_pressed["g_press"] = "normal"
-                n_held["g_press"] = "normal"
-            elif event.key == pygame.K_a:
-                n_pressed["g_press"] = "light"
-            if event.key == pygame.K_s and space_pressed or event.key == pygame.K_s and gamepad_mode:
-                n_pressed["r_press"] = "normal"
-                n_held["r_press"] = "normal"
-            elif event.key == pygame.K_s:
-                n_pressed["r_press"] = "light"
-            if event.key == pygame.K_j and space_pressed or event.key == pygame.K_j and gamepad_mode:
-                n_pressed["y_press"] = "normal"
-                n_held["y_press"] = "light"
-            elif event.key == pygame.K_j:
-                n_pressed["y_press"] = "normal"
-            if event.key == pygame.K_k and space_pressed or event.key == pygame.K_k and gamepad_mode:
-                n_pressed["b_press"] = "normal"
-                n_held["b_press"] = "normal"
-            elif event.key == pygame.K_k:
-                n_pressed["b_press"] = "light"
-            if event.key == pygame.K_l and space_pressed or event.key == pygame.K_l and gamepad_mode:
-                n_pressed["o_press"] = "normal"
-                n_held["o_press"] = "normal"
-            elif event.key == pygame.K_l:
-                n_pressed["o_press"] = "light"
+            elif event.key == pygame.K_KP_DIVIDE:
+                note = Note_Class(strum_note,5,bpm,"s","sn")
+                drawable_notes.insert(0,note)
+            for key in note_dict:
+                if event.key == key and space_pressed or  event.key == key and gamepad_mode:
+                    n_pressed[note_dict[key]] = "normal"
+                    n_held[note_dict[key]] = "normal"
+                elif event.key == key and space_pressed:
+                    n_pressed[note_dict[key]] = "light"
             if event.key == pygame.K_p:
                 if gamepad_mode:
                     gamepad_mode = False
