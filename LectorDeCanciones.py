@@ -60,6 +60,31 @@ def leerChart(chart):
         time.sleep(2)
         return
 
-filepath = main()
+def parse_BPM(rdblChart):
+    Resolution = rdblChart["Song"][6][1]
+    ts = rdblChart["SyncTrack"][1][1]
+    time_map = []
+    rawBpmEvents = []
+    for x in rdblChart["SyncTrack"]:
+        if x[1][0] == "TS":
+            continue
+        else:
+            rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1]/1000)})
 
-leerChart(filepath)
+    totMS = 0.0
+    for i in range(len(rawBpmEvents)):
+        currEvent = rawBpmEvents[i]
+        currTick = currEvent["tick"]
+        currBPM = currEvent["bpm"]
+    # Formula: (ticks * 60000) / (BPM * Resolution)
+        if currTick == 0:
+            totMS = 0.0
+            prevEvent = currEvent
+        else:
+            Ticks = currTick - prevEvent["tick"]
+            ms = (Ticks * 60000) / (prevEvent["bpm"] * Resolution)
+            totMS += ms
+            time_map.append({"tick": currTick,
+                             "bpm": currBPM,
+                             "MS": totMS})
+            prevEvent = currEvent
