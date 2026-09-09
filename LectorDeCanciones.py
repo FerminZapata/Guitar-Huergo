@@ -38,17 +38,22 @@ def leerChart(chart):
                         if "{" in linea or "}" in linea:
                             continue
                         else:
-                            rdblFile["SyncTrack"].append(str(linea.strip().split(" = ")))
+                            rdblFile["SyncTrack"].append(linea.strip().split(" = "))
                     elif contador == 3:
                         if "{" in linea or "}" in linea:
                             continue
                         else:
-                            rdblFile["Events"].append(str(linea.strip().split(" = ")))
+                            rdblFile["Events"].append(linea.strip().split(" = "))
                     elif contador == 4:
                         if "{" in linea or "}" in linea:
                             continue
                         else:
-                            rdblFile["HardSingle"].append(str(linea.strip().split(" = ")))
+                            rdblFile["HardSingle"].append(linea.strip().split(" = "))
+                            rdblFile["HardSingle"].append(linea.strip().split(" = "))
+        for bpms in rdblFile["SyncTrack"]:
+            bpms[1] = bpms[1].split(" ")
+        for notes in rdblFile["HardSingle"]:
+            notes[1] = notes[1].split(" ")
         print(rdblFile)
     except FileNotFoundError:
         print("No se encontro el archivo.")
