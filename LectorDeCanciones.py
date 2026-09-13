@@ -20,6 +20,8 @@ def main():
     print(rutaArchivo)
     return rutaArchivo
 
+chart_path = main()
+
 def leerChart(chart):
     try:
         with open(chart, "r", encoding="utf-8") as archivo:
@@ -60,6 +62,17 @@ def leerChart(chart):
         time.sleep(2)
         return
 
+def tick2ms(target_tick, time_map, resolution):
+    ActBpm = time_map[0]
+    for event in time_map:
+        if event["tick"] <= target_tick:
+            ActBpm = event
+        else:
+            break
+    ticks_since_lastBpmChng = target_tick - ActBpm["tick"]
+    ms_since_lastBpmChng = (ticks_since_lastBpmChng * 60000) / (ActBpm["bpm"] * resolution)
+    return ActBpm["MS"] + ms_since_lastBpmChng
+
 def parse_BPM(rdblChart):
     Resolution = rdblChart["Song"][6][1]
     ts = rdblChart["SyncTrack"][1][1]
@@ -88,3 +101,9 @@ def parse_BPM(rdblChart):
                              "bpm": currBPM,
                              "MS": totMS})
             prevEvent = currEvent
+
+def parseNote():
+    parsed_notes = []
+
+
+leerChart(chart_path)
