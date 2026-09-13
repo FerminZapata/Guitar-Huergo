@@ -57,21 +57,11 @@ def leerChart(chart):
         for notes in rdblFile["HardSingle"]:
             notes[1] = notes[1].split(" ")
         print(rdblFile)
+        return rdblFile
     except FileNotFoundError:
         print("No se encontro el archivo.")
         time.sleep(2)
         return
-
-def tick2ms(target_tick, time_map, resolution):
-    ActBpm = time_map[0]
-    for event in time_map:
-        if event["tick"] <= target_tick:
-            ActBpm = event
-        else:
-            break
-    ticks_since_lastBpmChng = target_tick - ActBpm["tick"]
-    ms_since_lastBpmChng = (ticks_since_lastBpmChng * 60000) / (ActBpm["bpm"] * resolution)
-    return ActBpm["MS"] + ms_since_lastBpmChng
 
 def parse_BPM(rdblChart):
     Resolution = rdblChart["Song"][6][1]
@@ -83,7 +73,6 @@ def parse_BPM(rdblChart):
             continue
         else:
             rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1]/1000)})
-
     totMS = 0.0
     for i in range(len(rawBpmEvents)):
         currEvent = rawBpmEvents[i]
@@ -101,8 +90,20 @@ def parse_BPM(rdblChart):
                              "bpm": currBPM,
                              "MS": totMS})
             prevEvent = currEvent
+    return time_map
 
-def parseNote():
+def tick2ms(target_tick, time_map, resolution):
+    ActBpm = time_map[0]
+    for event in time_map:
+        if event["tick"] <= target_tick:
+            ActBpm = event
+        else:
+            break
+    ticks_since_lastBpmChng = target_tick - ActBpm["tick"]
+    ms_since_lastBpmChng = (ticks_since_lastBpmChng * 60000) / (ActBpm["bpm"] * resolution)
+    return ActBpm["MS"] + ms_since_lastBpmChng
+
+def parseNote(chart, time_map, resolution):
     parsed_notes = []
 
 
