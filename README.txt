@@ -1,3 +1,5 @@
+Integrantes del proyecto: Teo venturotti, Santiago francos, Fermín zapata
+
 Las teclas del juego son:
 A, S, J, K, L
 
