@@ -51,7 +51,6 @@ def leerChart(chart):
                             continue
                         else:
                             rdblFile["HardSingle"].append(linea.strip().split(" = "))
-                            rdblFile["HardSingle"].append(linea.strip().split(" = "))
         for bpms in rdblFile["SyncTrack"]:
             bpms[1] = bpms[1].split(" ")
         for notes in rdblFile["HardSingle"]:
@@ -90,7 +89,7 @@ def parse_BPM(rdblChart):
                              "bpm": currBPM,
                              "MS": totMS})
             prevEvent = currEvent
-    return time_map
+    return time_map, Resolution
 
 def tick2ms(target_tick, time_map, resolution):
     ActBpm = time_map[0]
@@ -128,4 +127,4 @@ rdblFile = leerChart(chart_path)
 
 time_map = parse_BPM(rdblFile)
 
-print(parseNote(rdblFile, time_map, 192))
+print(parseNote(rdblFile, time_map[0], time_map[1]))
