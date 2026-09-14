@@ -1,10 +1,10 @@
 import os, time
 
 os.system("cls")
-def rutaCarpetaRaiz():
+def rutaCarpetaRaiz():              #extrae la ruta de la carpeta
     return os.path.dirname(__file__)
 
-def createRuta(archivo):
+def createRuta(archivo):            #crea una ruta con la cual se puede abrir el archivo. Si no existe, crea uno nuevo
     try:
         path = rutaCarpetaRaiz()
         file_path = os.path.join(path, archivo)
@@ -15,23 +15,23 @@ def createRuta(archivo):
         time.sleep(2)
         open(file_path, "w")
 
-def main():
+def main():                         #Termina de crear la ruta para su apertura
     rutaArchivo = createRuta("notes.chart")
     print(rutaArchivo)
     return rutaArchivo
 
 chart_path = main()
 
-def leerChart(chart):
+def leerChart(chart):       #Funcion que convierte el chart en un diccionario legible con listas
     try:
-        with open(chart, "r", encoding="utf-8") as archivo:
-            rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'HardSingle': []}
+        with open(chart, "r", encoding="utf-8") as archivo:         # se abre el archivo
+            rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'HardSingle': []}        #se crea el diccionario
             contador = 0
             for linea in archivo:
                 if "[Song]" in linea or "[SyncTrack]" in linea or "[Events]" in linea or "[HardSingle]" in linea:
                     contador += 1
                 else:
-                    if contador == 1:
+                    if contador == 1:                   #se agrega cada linea separada basado en si
                         if "{" in linea or "}" in linea:
                             continue
                         else:
@@ -51,7 +51,7 @@ def leerChart(chart):
                             continue
                         else:
                             rdblFile["HardSingle"].append(linea.strip().split(" = "))
-        for bpms in rdblFile["SyncTrack"]:
+        for bpms in rdblFile["SyncTrack"]:          # termina de separar las lineas
             bpms[1] = bpms[1].split(" ")
         for notes in rdblFile["HardSingle"]:
             notes[1] = notes[1].split(" ")
@@ -62,60 +62,59 @@ def leerChart(chart):
         time.sleep(2)
         return
 
-def parse_BPM(rdblChart):
-    Resolution = int(rdblChart["Song"][6][1])
-    ts = rdblChart["SyncTrack"][1][1]
-    time_map = []
-    rawBpmEvents = []
+def parse_BPM(rdblChart):           #funcion que parsea las bpm
+    Resolution = int(rdblChart["Song"][6][1])   #extraela resolucin de la cancion
+    time_map = []    #crea el mapa de tiempos
+    rawBpmEvents = []     #crea una lista para extraer los cambios de bpm 'crudos' (es decir como estan)
     for x in rdblChart["SyncTrack"]:
         if x[1][0] == "TS":
             continue
         else:
-            rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1])/1000})
-    totMS = 0.0
-    for i in range(len(rawBpmEvents)):
+            rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1])/1000})    #a menos que la linea diga ts, agrega
+    totMS = 0.0                                                                     #un mini diccionario a la lista con el
+    for i in range(len(rawBpmEvents)):                                              #tick y la bpm correspondiente par cada cambio
         currEvent = rawBpmEvents[i]
         currTick = currEvent["tick"]
         currBPM = currEvent["bpm"]
     # Formula: (ticks * 60000) / (BPM * Resolution)
-        if int(currTick) == 0:
-            totMS = 0.0
-            prevEvent = currEvent
+        if int(currTick) == 0:          # si es el cambio inicial
+            totMS = 0.0                 #miliegundos acumulados totales es igual a 0
+            prevEvent = currEvent       #la bpm de ahora se convierte en el cambio anterior
         else:
-            Ticks = currTick - prevEvent["tick"]
-            ms = (Ticks * 60000) / (prevEvent["bpm"] * Resolution)
-            totMS += ms
+            Ticks = currTick - prevEvent["tick"]        #calcula cuantos ticks dura la bpm actual
+            ms = (Ticks * 60000) / (prevEvent["bpm"] * Resolution)  #transforma los ticks en milisegundos
+            totMS += ms                 #agrega esos milisegundos a los milisegundos totales
             time_map.append({"tick": currTick,
-                             "bpm": currBPM,
+                             "bpm": currBPM,        #agrega todo al timemap
                              "MS": totMS})
             prevEvent = currEvent
     return time_map, Resolution
 
-def tick2ms(target_tick, time_map, resolution):
-    ActBpm = time_map[0]
+def tick2ms(target_tick, time_map, resolution):         #funcion para convertir ticks a milisegundos. esta se usa en la funcion para parsear notas que viene despues
+    ActBpm = time_map[0]                                #basicamente, primero asigna la bpm actual a la primera
     for event in time_map:
-        if int(event["tick"]) <= int(target_tick):
+        if int(event["tick"]) <= int(target_tick):      #para calcular bien los ms, va avanzando de bpms hasta que encuentra una mayor o igual al tick que se quiere calcular (lo que permite calcular los ms con el bpm en elque este tick esta)
             ActBpm = event
         else:
             break
-    ticks_since_lastBpmChng = int(target_tick) - int(ActBpm["tick"])
-    ms_since_lastBpmChng = (int(ticks_since_lastBpmChng) * 60000) / (int(ActBpm["bpm"]) * int(resolution))
-    return int(ActBpm["MS"]) + int(ms_since_lastBpmChng)
+    ticks_since_lastBpmChng = int(target_tick) - int(ActBpm["tick"])    #calcula los ticks desde el ultimo cambio de bpm
+    ms_since_lastBpmChng = (int(ticks_since_lastBpmChng) * 60000) / (int(ActBpm["bpm"]) * int(resolution)) #con eso, hace esta cuenta para calcular los ms desde el ultimo cambio de bpm
+    return int(ActBpm["MS"]) + int(ms_since_lastBpmChng)     #le agrega a los ms calculados anteriormete a los actuales para hacer los ms reales
 
-def parseNote(chart, time_map, resolution):
-    parsed_notes = []
-    raw_note_chart = []
-    for x in chart["HardSingle"]:
+def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
+    parsed_notes = []               #crea una lista para las notas parseadas
+    raw_note_chart = []             #y una para las notas 'crudas'
+    for x in chart["HardSingle"]:   #recorre la seccion de las notas y agrega sus datos a la lista de dtos crudos
         raw_note_chart.append({'tick': x[0],
                                'type': x[1][0],
                                'lane': x[1][1],
                                'sustain': x[1][2]})
-    for x in raw_note_chart:
-        lane = x['lane']
-        start_ms = tick2ms(int(x['tick']), time_map, resolution)
-        end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)
-        duration_ms = end_ms - start_ms
-        parsed_notes.append({'start_ms': start_ms,
+    for x in raw_note_chart:    #recorre la lista de datos crudos y hace esto:
+        lane = x['lane']    #extrae la columan en la que esta
+        start_ms = tick2ms(int(x['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
+        end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
+        duration_ms = end_ms - start_ms   #resta el final con el inicio para calcular cuanto dura
+        parsed_notes.append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
                              'duration_ms': duration_ms,
                              'lane': lane
                              })
