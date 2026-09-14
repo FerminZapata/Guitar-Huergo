@@ -64,7 +64,7 @@ def leerChart(chart):
         return
 
 def parse_BPM(rdblChart):
-    Resolution = rdblChart["Song"][6][1]
+    Resolution = int(rdblChart["Song"][6][1])
     ts = rdblChart["SyncTrack"][1][1]
     time_map = []
     rawBpmEvents = []
@@ -72,14 +72,14 @@ def parse_BPM(rdblChart):
         if x[1][0] == "TS":
             continue
         else:
-            rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1]/1000)})
+            rawBpmEvents.append({'tick': int(x[0]), 'bpm': float(x[1][1])/1000})
     totMS = 0.0
     for i in range(len(rawBpmEvents)):
         currEvent = rawBpmEvents[i]
         currTick = currEvent["tick"]
         currBPM = currEvent["bpm"]
     # Formula: (ticks * 60000) / (BPM * Resolution)
-        if currTick == 0:
+        if int(currTick) == 0:
             totMS = 0.0
             prevEvent = currEvent
         else:
@@ -95,16 +95,37 @@ def parse_BPM(rdblChart):
 def tick2ms(target_tick, time_map, resolution):
     ActBpm = time_map[0]
     for event in time_map:
-        if event["tick"] <= target_tick:
+        if int(event["tick"]) <= int(target_tick):
             ActBpm = event
         else:
             break
-    ticks_since_lastBpmChng = target_tick - ActBpm["tick"]
-    ms_since_lastBpmChng = (ticks_since_lastBpmChng * 60000) / (ActBpm["bpm"] * resolution)
-    return ActBpm["MS"] + ms_since_lastBpmChng
+    ticks_since_lastBpmChng = int(target_tick) - int(ActBpm["tick"])
+    ms_since_lastBpmChng = (int(ticks_since_lastBpmChng) * 60000) / (int(ActBpm["bpm"]) * int(resolution))
+    return int(ActBpm["MS"]) + int(ms_since_lastBpmChng)
 
 def parseNote(chart, time_map, resolution):
     parsed_notes = []
+    raw_note_chart = []
+    for x in chart["HardSingle"]:
+        raw_note_chart.append({'tick': x[0],
+                               'type': x[1][0],
+                               'lane': x[1][1],
+                               'sustain': x[1][2]})
+    for x in raw_note_chart:
+        lane = x['lane']
+        start_ms = tick2ms(int(x['tick']), time_map, resolution)
+        end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)
+        duration_ms = end_ms - start_ms
+        parsed_notes.append({'start_ms': start_ms,
+                             'duration_ms': duration_ms,
+                             'lane': lane
+                             })
+    return parsed_notes
 
 
-leerChart(chart_path)
+
+rdblFile = leerChart(chart_path)
+
+time_map = parse_BPM(rdblFile)
+
+print(parseNote(rdblFile, time_map, 192))
