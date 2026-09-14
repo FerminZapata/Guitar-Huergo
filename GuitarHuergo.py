@@ -1,8 +1,4 @@
-import pygame, os, LectorDeCanciones
-
-chart_File = LectorDeCanciones.main()
-
-chart = LectorDeCanciones.leerChart(chart_File)
+import pygame, os
 
 width = 1500
 height = 900
@@ -15,11 +11,11 @@ assets = os.path.join(os.path.dirname(__file__), "Assets")
 
 notecol = pygame.Rect(500,750,500,2)
 
-note_dict = {pygame.K_a :"g_press",
+keys_dict = {pygame.K_a :"g_press",
              pygame.K_s:"r_press",
              pygame.K_j:"y_press",
              pygame.K_k:"b_press",
-             pygame.K_o:"o_press",
+             pygame.K_l:"o_press",
              pygame.K_SPACE:"space"}
 
 n_pressed = {"g_press":False,
@@ -117,59 +113,74 @@ fret = {0:pygame.image.load(os.path.join(bgnd_assets,"Traste0.png")).convert_alp
         2:pygame.image.load(os.path.join(bgnd_assets,"Traste0.png")).convert_alpha(),
         3:pygame.image.load(os.path.join(bgnd_assets,"Traste1.png")).convert_alpha()}
 
-# Teclas
+# Ruta de los altavoces
 key_assets = os.path.join(assets, "Keys") # ruta de la carpeta de assets
 
-# Teclas sin ser presionadas
-normal_keys = os.path.join(key_assets,"Normal") # ruta de los assets
+# Creacion de un diccionario con los altavoces
+spkr_path = os.path.join(key_assets,"Normal") # ruta de los assets
 
-G_K = pygame.image.load(os.path.join(normal_keys,"Green.png")).convert_alpha()
-R_K = pygame.image.load(os.path.join(normal_keys,"Red.png")).convert_alpha()
-Y_K = pygame.image.load(os.path.join(normal_keys,"Yellow.png")).convert_alpha()
-B_K = pygame.image.load(os.path.join(normal_keys,"Blue.png")).convert_alpha()
-O_K = pygame.image.load(os.path.join(normal_keys,"Orange.png")).convert_alpha()
+data = os.listdir(spkr_path)
 
-# Teclas cuando son presionadas
-hit_keysN = os.path.join(key_assets,"HitNormal") # guarda la ruta de los assets
+spkr = {}
 
-G_KHN = pygame.image.load(os.path.join(hit_keysN,"Green.png")).convert_alpha()
-R_KHN = pygame.image.load(os.path.join(hit_keysN,"Red.png")).convert_alpha()
-Y_KHN = pygame.image.load(os.path.join(hit_keysN,"Yellow.png")).convert_alpha()
-B_KHN = pygame.image.load(os.path.join(hit_keysN,"Blue.png")).convert_alpha()
-O_KHN = pygame.image.load(os.path.join(hit_keysN,"Orange.png")).convert_alpha()
+for img in data:
+    spkr[img[0]] = pygame.image.load(os.path.join(spkr_path,img)).convert_alpha()
 
-# Teclas cuando son presionadas con la strum bar
-hit_keysB = os.path.join(key_assets,"HitBar") # guarda la ruta de los assets
+# Creacion de un diccionario con los altavoces cuando los presionas
+spkrh_path = os.path.join(key_assets,"Hit") # guarda la ruta de los assets
 
-G_KHB = pygame.image.load(os.path.join(hit_keysB,"Green.png")).convert_alpha()
-R_KHB = pygame.image.load(os.path.join(hit_keysB,"Red.png")).convert_alpha()
-Y_KHB = pygame.image.load(os.path.join(hit_keysB,"Yellow.png")).convert_alpha()
-B_KHB = pygame.image.load(os.path.join(hit_keysB,"Blue.png")).convert_alpha()
-O_KHB = pygame.image.load(os.path.join(hit_keysB,"Orange.png")).convert_alpha()
+data = os.listdir(spkrh_path)
 
-# Notas
+spkr_h = {}
+
+for img in data:
+    spkr_h[img[0]] = pygame.image.load(os.path.join(spkrh_path,img)).convert_alpha()
+
+# Creacion de un diccionario con los altavoces cuando los presionas junto a la strumbar
+spkrs_path = os.path.join(key_assets,"HitStrum") # guarda la ruta de los assets
+
+data = os.listdir(spkrs_path)
+
+spkr_s = {}
+
+for img in data:
+    spkr_s[img[0]] = pygame.image.load(os.path.join(spkrs_path,img)).convert_alpha()
+
+# Ruta de las notas
 note_assets = os.path.join(assets, "Notes")
 
-# Nota para la strumbar (espacio en teclado)
-strum_note = pygame.image.load(os.path.join(note_assets,"Strumnote.png")).convert_alpha()
+# Creacion de la nota open
+open_note = pygame.image.load(os.path.join(note_assets,"Open.png")).convert_alpha()
 
-# Notas normales
-note_folder = os.path.join(note_assets, "Normal")
+# Creacion de un diccionario con los assets de las notas Hammer on
+hamon_path = os.path.join(note_assets, "Hammer-on")
 
-notes = {"G":pygame.image.load(os.path.join(note_folder,"Green.png")).convert_alpha(),
-         "R":pygame.image.load(os.path.join(note_folder,"Red.png")).convert_alpha(),
-         "Y":pygame.image.load(os.path.join(note_folder,"Yellow.png")).convert_alpha(),
-         "B":pygame.image.load(os.path.join(note_folder,"Blue.png")).convert_alpha(),
-         "O":pygame.image.load(os.path.join(note_folder,"Orange.png")).convert_alpha()}
+data = os.listdir(hamon_path)
 
-# Notas brillantes
-notel = os.path.join(note_assets, "Normal Light")
+HN = {}
 
-Lnotes = {"G":pygame.image.load(os.path.join(notel,"Green.png")).convert_alpha(),
-         "R":pygame.image.load(os.path.join(notel,"Red.png")).convert_alpha(),
-         "Y":pygame.image.load(os.path.join(notel,"Yellow.png")).convert_alpha(),
-         "B":pygame.image.load(os.path.join(notel,"Blue.png")).convert_alpha(),
-         "O":pygame.image.load(os.path.join(notel,"Orange.png")).convert_alpha()}
+for img in data:
+    HN[img[0]] = pygame.image.load(os.path.join(hamon_path,img)).convert_alpha()
+
+# Creacion de un diccionario con los assets de las notas Pull off
+pulloff_path = os.path.join(note_assets, "Pull-off")
+
+data = os.listdir(pulloff_path)
+
+PO = {}
+
+for img in data:
+    PO[img[0]] = pygame.image.load(os.path.join(pulloff_path,img)).convert_alpha()
+
+# Creacion de un diccionario con los assets de las notas Tap
+tap_path = os.path.join(note_assets, "Pull-off")
+
+data = os.listdir(tap_path)
+
+TN = {}
+
+for img in data:
+    TN[img[0]] = pygame.image.load(os.path.join(tap_path,img)).convert_alpha()
 
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
@@ -189,36 +200,18 @@ def draw_background():
 
     teclas = pygame.key.get_pressed()
 
-    if teclas[pygame.K_a] and teclas[pygame.K_SPACE] or teclas[pygame.K_a] and gamepad_mode:
-        window.blit(G_KHB, pos_def)
-    elif teclas[pygame.K_a]:
-        window.blit(G_KHN, pos_def)
-    else:
-        window.blit(G_K, pos_def)
-    if teclas[pygame.K_s] and teclas[pygame.K_SPACE] or teclas[pygame.K_s] and gamepad_mode:
-        window.blit(R_KHB, pos_def)
-    elif teclas[pygame.K_s]:
-        window.blit(R_KHN, pos_def)
-    else:
-        window.blit(R_K, pos_def)
-    if teclas[pygame.K_j] and teclas[pygame.K_SPACE] or teclas[pygame.K_j] and gamepad_mode:
-        window.blit(Y_KHB, pos_def)
-    elif teclas[pygame.K_j]:
-        window.blit(Y_KHN, pos_def)
-    else:
-        window.blit(Y_K, pos_def)
-    if teclas[pygame.K_k] and teclas[pygame.K_SPACE] or teclas[pygame.K_k] and gamepad_mode:
-        window.blit(B_KHB, pos_def)
-    elif teclas[pygame.K_k]:
-        window.blit(B_KHN, pos_def)
-    else:
-        window.blit(B_K, pos_def)
-    if teclas[pygame.K_l] and teclas[pygame.K_SPACE] or teclas[pygame.K_l] and gamepad_mode:
-        window.blit(O_KHB, pos_def)
-    elif teclas[pygame.K_l]:
-        window.blit(O_KHN, pos_def)
-    else:
-        window.blit(O_K, pos_def)
+    for key in keys_dict:
+        if key != pygame.K_SPACE:
+            if teclas[key] and teclas[pygame.K_SPACE] or teclas[key] and gamepad_mode:
+                window.blit(spkr_s[keys_dict[key][0]], pos_def)
+            elif teclas[key]:
+                window.blit(spkr_h[keys_dict[key][0]], pos_def)
+            else:
+                window.blit(spkr[keys_dict[key][0]], pos_def)
+        elif key == pygame.K_SPACE:
+            if teclas[pygame.K_SPACE]:
+                for key in spkr_s:
+                    window.blit(spkr_s[key],pos_def)
 
 def draw_notes(lista):
     if len(lista) != 0:
@@ -230,7 +223,7 @@ def draw_notes(lista):
 
 drawable_notes = [] # Lista que almacena las notas actuales
 
-gamepad_mode = False
+gamepad_mode = True
 
 space_pressed = False
 
@@ -252,54 +245,54 @@ while True:
         elif event.type == pygame.KEYUP:
             if event.key == pygame.K_SPACE:
                 space_pressed = False
-            for key in note_dict:
+            for key in keys_dict:
                 if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                    n_pressed[note_dict[key]] = "none"
-                    n_held[note_dict[key]] = "noe"
+                    n_pressed[keys_dict[key]] = "none"
+                    n_held[keys_dict[key]] = "none"
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
             if event.key == pygame.K_SPACE:
                 n_pressed["space"] = "normal"
                 space_pressed = True
             if event.key == pygame.K_KP0:
-                note = Note_Class(notes["G"],0,bpm,"g","nn")
+                note = Note_Class(HN["G"],0,bpm,"g","nn")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP1:
-                note = Note_Class(notes["R"],1,bpm,"r","nn")
+                note = Note_Class(HN["R"],1,bpm,"r","nn")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP2:
-                note = Note_Class(notes["Y"],2,bpm,"y","nn")
+                note = Note_Class(HN["Y"],2,bpm,"y","nn")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP3:
-                note = Note_Class(notes["B"],3,bpm,"b","nn")
+                note = Note_Class(HN["B"],3,bpm,"b","nn")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP4:
-                note = Note_Class(notes["O"],4,bpm,"o","nn")
+                note = Note_Class(HN["O"],4,bpm,"o","nn")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP5:
-                note = Note_Class(Lnotes["G"],0,bpm,"g","nl")
+                note = Note_Class(PO["G"],0,bpm,"g","nl")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP6:
-                note = Note_Class(Lnotes["R"],1,bpm,"r","nl")
+                note = Note_Class(PO["R"],1,bpm,"r","nl")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP7:
-                note = Note_Class(Lnotes["Y"],2,bpm,"y","nl")
+                note = Note_Class(PO["Y"],2,bpm,"y","nl")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP8:
-                note = Note_Class(Lnotes["B"],3,bpm,"b","nl")
+                note = Note_Class(PO["B"],3,bpm,"b","nl")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP9:
-                note = Note_Class(Lnotes["O"],4,bpm,"o","nl")
+                note = Note_Class(PO["O"],4,bpm,"o","nl")
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP_DIVIDE:
-                note = Note_Class(strum_note,5,bpm,"s","sn")
+                note = Note_Class(open_note,5,bpm,"s","sn")
                 drawable_notes.insert(0,note)
-            for key in note_dict:
+            for key in keys_dict:
                 if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                    n_pressed[note_dict[key]] = "normal"
-                    n_held[note_dict[key]] = "normal"
+                    n_pressed[keys_dict[key]] = "normal"
+                    n_held[keys_dict[key]] = "normal"
                 elif event.key == key and space_pressed:
-                    n_pressed[note_dict[key]] = "light"
+                    n_pressed[keys_dict[key]] = "light"
             if event.key == pygame.K_p:
                 if gamepad_mode:
                     gamepad_mode = False

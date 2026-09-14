@@ -1,5 +1,5 @@
 Las teclas del juego son:
-A, S, J, K, K, L,
+A, S, J, K, L,
 
 Para testear las notas se pueden utilizar las teclas del numpad (de el 0-4 notas normales y 5-9 iluminadas)
 
