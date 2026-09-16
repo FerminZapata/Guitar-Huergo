@@ -25,10 +25,10 @@ chart_path = main()
 def leerChart(chart):       #Funcion que convierte el chart en un diccionario legible con listas
     try:
         with open(chart, "r", encoding="utf-8") as archivo:         # se abre el archivo
-            rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'HardSingle': []}        #se crea el diccionario
+            rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}        #se crea el diccionario
             contador = 0
             for linea in archivo:
-                if "[Song]" in linea or "[SyncTrack]" in linea or "[Events]" in linea or "[HardSingle]" in linea:
+                if "[Song]" in linea or "[SyncTrack]" in linea or "[Events]" in linea or "[HardSingle]" in linea or "[ExpertSingle]" in linea or "[EasySingle]" in linea or "[MediumSingle]" in linea:
                     contador += 1
                 else:
                     if contador == 1:                   #se agrega cada linea separada basado en si
@@ -50,10 +50,31 @@ def leerChart(chart):       #Funcion que convierte el chart en un diccionario le
                         if "{" in linea or "}" in linea:
                             continue
                         else:
+                            rdblFile["ExpertSingle"].append(linea.strip().split(" = "))
+                    elif contador == 5:
+                        if "{" in linea or "}" in linea:
+                            continue
+                        else:
                             rdblFile["HardSingle"].append(linea.strip().split(" = "))
+                    elif contador == 6:
+                        if "{" in linea or "}" in linea:
+                            continue
+                        else:
+                            rdblFile["MediumSingle"].append(linea.strip().split(" = "))
+                    elif contador == 7:
+                        if "{" in linea or "}" in linea:
+                            continue
+                        else:
+                            rdblFile["EasySingle"].append(linea.strip().split(" = "))
         for bpms in rdblFile["SyncTrack"]:          # termina de separar las lineas
             bpms[1] = bpms[1].split(" ")
+        for notes in rdblFile["ExpertSingle"]:
+            notes[1] = notes[1].split(" ")
         for notes in rdblFile["HardSingle"]:
+            notes[1] = notes[1].split(" ")
+        for notes in rdblFile["MediumSingle"]:
+            notes[1] = notes[1].split(" ")
+        for notes in rdblFile["EasySingle"]:
             notes[1] = notes[1].split(" ")
         print(rdblFile)
         return rdblFile
@@ -102,22 +123,56 @@ def tick2ms(target_tick, time_map, resolution):         #funcion para convertir 
     return int(ActBpm["MS"]) + int(ms_since_lastBpmChng)     #le agrega a los ms calculados anteriormete a los actuales para hacer los ms reales
 
 def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
-    parsed_notes = []               #crea una lista para las notas parseadas
-    raw_note_chart = []             #y una para las notas 'crudas'
-    for x in chart["HardSingle"]:   #recorre la seccion de las notas y agrega sus datos a la lista de dtos crudos
-        raw_note_chart.append({'tick': x[0],
-                               'type': x[1][0],
-                               'lane': x[1][1],
-                               'sustain': x[1][2]})
-    for x in raw_note_chart:    #recorre la lista de datos crudos y hace esto:
-        lane = x['lane']    #extrae la columan en la que esta
-        start_ms = tick2ms(int(x['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
-        end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
-        duration_ms = end_ms - start_ms   #resta el final con el inicio para calcular cuanto dura
-        parsed_notes.append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
-                             'duration_ms': duration_ms,
-                             'lane': lane
-                             })
+    parsed_notes = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}              #crea una lista para las notas parseadas
+    raw_note_chart = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}          #y una para las notas 'crudas'
+    for x in chart["ExpertSingle"]:   #recorre cada seccion de las notas y agrega sus datos a la lista de dtos crudos
+        raw_note_chart["ExpertSingle"].append(({'tick': x[0],
+                                                'type': x[1][0],
+                                                'lane': x[1][1],
+                                                'sustain': x[1][2]}))
+    for x in chart["HardSingle"]:   
+        raw_note_chart["HardSingle"].append(({'tick': x[0],
+                                                'type': x[1][0],
+                                                'lane': x[1][1],
+                                                'sustain': x[1][2]}))
+    for x in chart["MediumSingle"]:   
+        raw_note_chart["MediumSingle"].append(({'tick': x[0],
+                                                'type': x[1][0],
+                                                'lane': x[1][1],
+                                                'sustain': x[1][2]}))
+    for x in chart["EasySingle"]:
+        raw_note_chart["EasySingle"].append(({'tick': x[0],
+                                                'type': x[1][0],
+                                                'lane': x[1][1],
+                                                'sustain': x[1][2]}))
+    count = 1
+    for x in raw_note_chart:
+        for notes in x:   #recorre la lista de datos crudos y hace esto:
+            lane = x['lane']    #extrae la columan en la que esta
+            start_ms = tick2ms(int(x['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
+            end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
+            duration_ms = end_ms - start_ms   #resta el final con el inicio para calcular cuanto dura
+            if count == 1:
+                parsed_notes["ExpertSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                                    'duration_ms': duration_ms,
+                                    'lane': lane
+                                    })
+            if count == 2:
+                parsed_notes["HardSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                                    'duration_ms': duration_ms,
+                                    'lane': lane
+                                    })
+            if count == 3:
+                parsed_notes["MediumSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                                    'duration_ms': duration_ms,
+                                    'lane': lane
+                                    })
+            if count == 4:
+                parsed_notes["EasySingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                                    'duration_ms': duration_ms,
+                                    'lane': lane
+                                    })
+            count += 1
     return parsed_notes
 
 
@@ -126,4 +181,4 @@ rdblFile = leerChart(chart_path)
 
 time_map = parse_BPM(rdblFile)
 
-print(parseNote(rdblFile, time_map[0], time_map[1]))
+parseNote(rdblFile, time_map[0], time_map[1])
