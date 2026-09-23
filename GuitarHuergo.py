@@ -9,7 +9,11 @@ clock = pygame.time.Clock()
 
 assets = os.path.join(os.path.dirname(__file__), "Assets")
 
-notecol = pygame.Rect(500,750,500,2)
+notecol = pygame.surface.Surface((500,100))
+
+notecol.set_alpha(90)
+
+notecol.fill((255,255,255))
 
 keys_dict = {pygame.K_a :"g_press",
              pygame.K_s:"r_press",
@@ -185,6 +189,8 @@ for img in data:
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
 
+    window.blit(notecol,(500,675))
+
     pos_def = (width/2 - background.get_width()/2,height - background.get_height())
 
     if len(frets) != 0:
@@ -196,20 +202,21 @@ def draw_background():
 
     window.blit(background,pos_def)
 
-    pygame.draw.rect(window, (255,255,255), notecol)
-
     teclas = pygame.key.get_pressed()
+
+    pressed = False
 
     for key in keys_dict:
         if key != pygame.K_SPACE:
             if teclas[key] and teclas[pygame.K_SPACE] or teclas[key] and gamepad_mode:
                 window.blit(spkr_s[keys_dict[key][0]], pos_def)
+                pressed = True
             elif teclas[key]:
                 window.blit(spkr_h[keys_dict[key][0]], pos_def)
             else:
                 window.blit(spkr[keys_dict[key][0]], pos_def)
         elif key == pygame.K_SPACE:
-            if teclas[pygame.K_SPACE]:
+            if teclas[pygame.K_SPACE] and pressed != True or teclas[pygame.K_SPACE] and gamepad_mode:
                 for key in spkr_s:
                     window.blit(spkr_s[key],pos_def)
 
@@ -291,7 +298,7 @@ while True:
                 if event.key == key and space_pressed or  event.key == key and gamepad_mode:
                     n_pressed[keys_dict[key]] = "normal"
                     n_held[keys_dict[key]] = "normal"
-                elif event.key == key and space_pressed:
+                elif event.key == key:
                     n_pressed[keys_dict[key]] = "light"
             if event.key == pygame.K_p:
                 if gamepad_mode:
@@ -311,12 +318,13 @@ while True:
     draw_background()
 
     for press in n_pressed:
+        print(n_pressed[press])
         if n_pressed[press] == "normal":
             if len(drawable_notes) != 0:
                 for n in drawable_notes:
                     if n.note[0] != press[0]:
                         continue
-                    elif notecol.colliderect(n.rect):
+                    elif n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
                         drawable_notes.remove(n)
                         point += 1
             n_pressed[press] = "none"
@@ -326,13 +334,12 @@ while True:
                 for n in drawable_notes:
                     if n.note[0] != press[0] or n.type != "nl":
                         continue
-                    elif notecol.colliderect(n.rect):
+                    elif n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
                         drawable_notes.remove(n)
                         temp = True
             if temp == True:
                 point += 1
             n_pressed[press] = "none"
-
     if len(drawable_notes) != 0:
         for n in drawable_notes:
             if n.pos[1] >= 900:
