@@ -250,17 +250,18 @@ while True:
             pygame.quit()
             exit()
         elif event.type == pygame.KEYUP:
-            if event.key == pygame.K_SPACE:
-                space_pressed = False
             for key in keys_dict:
-                if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                    n_pressed[keys_dict[key]] = "none"
-                    n_held[keys_dict[key]] = "none"
+                if key != pygame.K_SPACE:
+                    if event.key == key and space_pressed or  event.key == key and gamepad_mode:
+                        n_pressed[keys_dict[key]] = "none"
+                        n_held[keys_dict[key]] = "none"
+                else:
+                    if event.key == key:
+                        n_pressed[keys_dict[key]] = "none"
+                        n_held[keys_dict[key]] = "none"
+                        space_pressed = False
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
-            if event.key == pygame.K_SPACE:
-                n_pressed["space"] = "normal"
-                space_pressed = True
             if event.key == pygame.K_KP0:
                 note = Note_Class(HN["G"],0,bpm,"g","nn")
                 drawable_notes.insert(0,note)
@@ -295,11 +296,17 @@ while True:
                 note = Note_Class(open_note,5,bpm,"s","sn")
                 drawable_notes.insert(0,note)
             for key in keys_dict:
-                if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                    n_pressed[keys_dict[key]] = "normal"
-                    n_held[keys_dict[key]] = "normal"
-                elif event.key == key:
-                    n_pressed[keys_dict[key]] = "light"
+                if key != pygame.K_SPACE:
+                    if event.key == key and space_pressed or  event.key == key and gamepad_mode:
+                        n_pressed[keys_dict[key]] = "normal"
+                        n_held[keys_dict[key]] = "normal"
+                    elif event.key == key:
+                        n_pressed[keys_dict[key]] = "light"
+                else:
+                    if event.key == key:
+                        space_pressed = True
+                        n_pressed[keys_dict[key]] = "normal"
+                        n_held[keys_dict[key]] = "normal"
             if event.key == pygame.K_p:
                 if gamepad_mode:
                     gamepad_mode = False
@@ -318,15 +325,21 @@ while True:
     draw_background()
 
     for press in n_pressed:
-        print(n_pressed[press])
         if n_pressed[press] == "normal":
             if len(drawable_notes) != 0:
                 for n in drawable_notes:
+                    print(n.pos[1] + n.surf.get_height()/2)
+                    print(n.pos[1],n.surf.get_height()/2)
                     if n.note[0] != press[0]:
                         continue
-                    elif n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
-                        drawable_notes.remove(n)
-                        point += 1
+                    elif n.note == "s":
+                        if n.pos[1] + n.surf.get_height()/2 >= 650 and n.pos[1] + n.surf.get_height()/2 <= 750:
+                            drawable_notes.remove(n)
+                            point += 1
+                    else:
+                        if n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
+                            drawable_notes.remove(n)
+                            point += 1
             n_pressed[press] = "none"
         elif n_pressed[press] == "light":
             temp = False
