@@ -14,12 +14,18 @@ collision = pygame.Rect(0, 0, 50, 50)
 clock = pygame.time.Clock()
 
 class button:
-    def __init__(self, pos, surf):
-        self.surf = surf
+    def __init__(self, pos, surf_normal, surf_hover=None):
+        self.surf_normal = surf_normal
+        self.surf_hover = surf_hover if surf_hover else surf_normal
         self.pos = pos
+        self.rect = self.surf_normal.get_rect(topleft=pos)
 
     def update(self):
-        screen.blit(self.surf,self.pos)
+        mouse_pos = pygame.mouse.get_pos()
+        if self.rect.collidepoint(mouse_pos):
+            screen.blit(self.surf_hover, self.pos)
+        else:
+            screen.blit(self.surf_normal, self.pos)
 
 menu = []
 background = pygame.image.load(os.path.join("E:\Github desklol\Guitar-Huergo\Assets\Menu", "FONDO.png")).convert_alpha()
@@ -32,11 +38,11 @@ boton_quickplay_presionado = pygame.image.load(os.path.join("E:\Github desklol\G
 boton_salir_presionado = pygame.image.load(os.path.join("E:\Github desklol\Guitar-Huergo\Assets\Menu", "SALIR PRESIONADO.png")).convert_alpha()
 boton_campaign_presionado = pygame.image.load(os.path.join("E:\Github desklol\Guitar-Huergo\Assets\Menu", "CAMPAIGN PRESIONADO.png")).convert_alpha()
 boton_opciones_presionado = pygame.image.load(os.path.join("E:\Github desklol\Guitar-Huergo\Assets\Menu", "OPCIONES PRESIONADO.png")).convert_alpha()
-var1 = button((width/2-logo.width/2, 0),logo)
-var2 = button((width/2-boton_quickplay.width/2, 400), boton_quickplay)
-var3 = button((width/2-boton_campaign.width/2, 500), boton_campaign)
-var4 = button((width/2-boton_opciones.width/2,600), boton_opciones)
-var5 = button((width/2-boton_salir.width/2, 700), boton_salir)
+var1 = button((width/2-logo.width/2, -2),logo)
+var2 = button((width/2-boton_quickplay.width/2, 400), boton_quickplay, boton_quickplay_presionado)
+var3 = button((width/2-boton_campaign.width/2, 500), boton_campaign, boton_campaign_presionado)
+var4 = button((width/2-boton_opciones.width/2,600), boton_opciones, boton_opciones_presionado)
+var5 = button((width/2-boton_salir.width/2, 700), boton_salir, boton_salir_presionado)
 menu.extend([var1, var2, var3, var4, var5])
     
 
@@ -49,10 +55,6 @@ while ejecucion:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             ejecucion = False
-    pygame.draw.rect(screen, (255,0,0), collision)
-    mouse = pygame.mouse.get_pos()
-    collision.x = mouse[0]
-    collision.y = mouse[1]
     pygame.display.flip()
     upt_assets()
     pygame.display.update()
