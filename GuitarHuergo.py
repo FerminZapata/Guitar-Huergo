@@ -15,82 +15,26 @@ notecol.set_alpha(90)
 
 notecol.fill((255,255,255))
 
-keys_dict = {pygame.K_a :"g_press",
-             pygame.K_s:"r_press",
-             pygame.K_j:"y_press",
-             pygame.K_k:"b_press",
-             pygame.K_l:"o_press",
-             pygame.K_SPACE:"space"}
+keys_dict = {pygame.K_a :"G_press",
+             pygame.K_s:"R_press",
+             pygame.K_j:"Y_press",
+             pygame.K_k:"B_press",
+             pygame.K_l:"O_press",
+             pygame.K_SPACE:"Open"}
 
 n_pressed = {"g_press":False,
              "r_press":False,
              "y_press":False,
              "b_press":False,
              "o_press":False,
-             "space":False}
+             "open":False}
 
 n_held = {"g_press":False,
           "r_press":False,
           "y_press":False,
           "b_press":False,
           "o_press":False,
-          "space":False}
-
-class Note_Class:
-    def __init__(self, surf, row, bpm, note, typ):
-        self.spd = (bpm/60)
-        self.row = row
-        self.surf = surf
-        self.type = typ
-        self.note = note
-        if row != 5:
-            self.add = 0.1
-        else:
-            self.add = 0.48
-        self.rect = pygame.Rect(0,0,self.surf.get_width(),self.surf.get_height())
-        if row == 0:
-            self.pos = (655,420)
-        elif row == 1:
-            self.pos = (695,420)
-        elif row == 2:
-            self.pos = (730,420)
-        elif row == 3:
-            self.pos = (765,420)
-        elif row == 4:
-            self.pos = (800,420)
-        elif row == 5:
-            self.pos = (653,435)
-
-    def update(self):
-        if self.pos[1] != 900:
-            # Actualizacion de la imagen de la nota
-            note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
-            if self.row == 0:
-                self.pos = (self.pos[0]-4.5*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 1:
-                self.pos = (self.pos[0]-2.8*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 2:
-                self.pos = (self.pos[0]-1*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 3:
-                self.pos = (self.pos[0]+1*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 4:
-                self.pos = (self.pos[0]+2.7*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 5:
-                self.pos = (self.pos[0]-4.2*self.spd,self.pos[1]+8*self.spd)
-            if self.row != 5:
-                self.add += 0.005*self.spd
-                self.spd += 0.005
-            else:
-                self.add += 0.022*self.spd
-                self.spd += 0.005
-
-            # Actualizacion de la colision de la nota
-            self.rect.x = self.pos[0]
-            self.rect.y = self.pos[1]
-            self.rect.width = note.get_width()
-            self.rect.height = note.get_height()
-
-            window.blit(note,self.pos)
+          "open":False}
 
 class Fret:
     def __init__(self, surf, bpm):
@@ -161,30 +105,87 @@ hamon_path = os.path.join(note_assets, "Hammer-on")
 
 data = os.listdir(hamon_path)
 
-HN = {}
+HN = {} # Este diccionario guarda todas las notas normales
 
 for img in data:
-    HN[img[0]] = pygame.image.load(os.path.join(hamon_path,img)).convert_alpha()
+    HN[img[:-4]] = pygame.image.load(os.path.join(hamon_path,img)).convert_alpha()
 
 # Creacion de un diccionario con los assets de las notas Pull off
 pulloff_path = os.path.join(note_assets, "Pull-off")
 
 data = os.listdir(pulloff_path)
 
-PO = {}
+PO = {} # Este diccionario guarda las notas iluminadas
 
 for img in data:
-    PO[img[0]] = pygame.image.load(os.path.join(pulloff_path,img)).convert_alpha()
+    PO[img[:-4]] = pygame.image.load(os.path.join(pulloff_path,img)).convert_alpha()
 
 # Creacion de un diccionario con los assets de las notas Tap
 tap_path = os.path.join(note_assets, "Pull-off")
 
 data = os.listdir(tap_path)
 
-TN = {}
+TN = {} # Este diccionario guarda las notas transparentes
 
 for img in data:
-    TN[img[0]] = pygame.image.load(os.path.join(tap_path,img)).convert_alpha()
+    TN[img[:-4]] = pygame.image.load(os.path.join(tap_path,img)).convert_alpha()
+
+notes = {"hammer":HN,
+         "pull":PO,
+         "tap":TN}
+
+startNotePos = {
+    "Green":(655,420),
+    "Red":(695,420),
+    "Yellow":(730,420),
+    "Blue":(765,420),
+    "Orange":(800,420),
+    "Open":(653,435)
+}
+
+rowList = ["Green","Red","Yellow","Blue","Orange","Open"]
+specialList = ["hammer","pull","tap"]
+posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
+
+class Note_Class:
+    def __init__(self, note, row, span, special):
+        self.spd = bpm/60
+        self.note = note
+        self.span = span
+        self.row = row
+        self.special = special
+        if row != 7:
+            self.add = 0.1
+            self.type = rowList[row]
+        else:
+            self.add = 0.48
+            self.type = rowList[row-2]
+        specialTemp = specialList[special]
+        self.pos = startNotePos[self.type]
+        type = notes[specialTemp]
+        if row != 7:
+            self.surf = type[self.type]
+        else:
+            self.surf = open_note
+        self.middle = self.surf.get_height() / 2
+
+    def update(self):
+        if self.pos[1] != 900:
+            # Actualizacion de la imagen de la nota
+            note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
+            self.middle = note.height / 2
+            if self.row != 7:
+                self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
+            elif self.row == 7:
+                self.pos = (self.pos[0]+posChangeList[self.row-2]*self.spd,self.pos[1]+8*self.spd)
+            if self.row != 7:
+                self.add += 0.005*self.spd
+                self.spd += 0.005
+            else:
+                self.add += 0.022*self.spd
+                self.spd += 0.005
+
+            window.blit(note,self.pos)
 
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
@@ -228,6 +229,15 @@ def draw_notes(lista):
             else:
                 i.update()
 
+def draw_frets():
+    if pygame.time.get_ticks() - o_time  >= 0:
+        o_time = pygame.time.get_ticks() + (bpm * 60)/4
+        if current_fret != 3:
+            current_fret += 1
+        else:
+            current_fret = 0
+        temp = Fret(fret[current_fret],bpm)
+        frets.insert(0,temp)
 drawable_notes = [] # Lista que almacena las notas actuales
 
 gamepad_mode = True
@@ -263,37 +273,37 @@ while True:
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
             if event.key == pygame.K_KP0:
-                note = Note_Class(HN["G"],0,bpm,"g","nn")
+                note = Note_Class("N",0,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP1:
-                note = Note_Class(HN["R"],1,bpm,"r","nn")
+                note = Note_Class("N",1,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP2:
-                note = Note_Class(HN["Y"],2,bpm,"y","nn")
+                note = Note_Class("N",2,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP3:
-                note = Note_Class(HN["B"],3,bpm,"b","nn")
+                note = Note_Class("N",3,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP4:
-                note = Note_Class(HN["O"],4,bpm,"o","nn")
+                note = Note_Class("N",4,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP5:
-                note = Note_Class(PO["G"],0,bpm,"g","nl")
+                note = Note_Class("N",0,0,1)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP6:
-                note = Note_Class(PO["R"],1,bpm,"r","nl")
+                note = Note_Class("N",1,0,1)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP7:
-                note = Note_Class(PO["Y"],2,bpm,"y","nl")
+                note = Note_Class("N",2,0,1)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP8:
-                note = Note_Class(PO["B"],3,bpm,"b","nl")
+                note = Note_Class("N",3,0,1)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP9:
-                note = Note_Class(PO["O"],4,bpm,"o","nl")
+                note = Note_Class("N",4,0,1)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP_DIVIDE:
-                note = Note_Class(open_note,5,bpm,"s","sn")
+                note = Note_Class("N",7,0,0)
                 drawable_notes.insert(0,note)
             for key in keys_dict:
                 if key != pygame.K_SPACE:
@@ -328,16 +338,9 @@ while True:
         if n_pressed[press] == "normal":
             if len(drawable_notes) != 0:
                 for n in drawable_notes:
-                    print(n.pos[1] + n.surf.get_height()/2)
-                    print(n.pos[1],n.surf.get_height()/2)
-                    if n.note[0] != press[0]:
+                    if n.type[0] != press[0]:
                         continue
-                    elif n.note == "s":
-                        if n.pos[1] + n.surf.get_height()/2 >= 650 and n.pos[1] + n.surf.get_height()/2 <= 750:
-                            drawable_notes.remove(n)
-                            point += 1
-                    else:
-                        if n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
+                    elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
                             drawable_notes.remove(n)
                             point += 1
             n_pressed[press] = "none"
@@ -345,14 +348,15 @@ while True:
             temp = False
             if len(drawable_notes) != 0:
                 for n in drawable_notes:
-                    if n.note[0] != press[0] or n.type != "nl":
+                    if n.type[0] != press[0] or n.special != 1:
                         continue
-                    elif n.pos[1] + n.surf.get_height()/2 >= 825 and n.pos[1] + n.surf.get_height()/2 <= 925:
+                    elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
                         drawable_notes.remove(n)
                         temp = True
             if temp == True:
                 point += 1
             n_pressed[press] = "none"
+    
     if len(drawable_notes) != 0:
         for n in drawable_notes:
             if n.pos[1] >= 900:
