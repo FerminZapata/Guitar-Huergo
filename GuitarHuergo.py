@@ -173,7 +173,7 @@ class Note_Class:
         if self.pos[1] != 900:
             # Actualizacion de la imagen de la nota
             note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
-            self.middle = note.height / 2
+            self.middle = note.get_height() / 2
             if self.row != 7:
                 self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
             elif self.row == 7:
