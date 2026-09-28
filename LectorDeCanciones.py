@@ -4,16 +4,14 @@ os.system("cls")
 def rutaCarpetaRaiz():              #extrae la ruta de la carpeta
     return os.path.dirname(__file__)
 
-def createRuta(archivo):            #crea una ruta con la cual se puede abrir el archivo. Si no existe, crea uno nuevo
+def createRuta(archivo):            #crea una ruta con la cual se puede abrir el archivo.
     try:
         path = rutaCarpetaRaiz()
         file_path = os.path.join(path, archivo)
         open(file_path, "r")
         return file_path
     except FileNotFoundError:
-        print("Archivo no encontrado, se creara uno nuevo")
-        time.sleep(2)
-        open(file_path, "w")
+        print("No se encontro el archivo")
 
 def main():                         #Termina de crear la ruta para su apertura
     rutaArchivo = createRuta("notes.chart")
@@ -84,7 +82,7 @@ def leerChart(chart):       #Funcion que convierte el chart en un diccionario le
         return
 
 def parse_BPM(rdblChart):           #funcion que parsea las bpm
-    Resolution = int(rdblChart["Song"][6][1])   #extraela resolucin de la cancion
+    Resolution = int(rdblChart["Song"][6][1])   #extraela resolucion de la cancion
     time_map = []    #crea el mapa de tiempos
     rawBpmEvents = []     #crea una lista para extraer los cambios de bpm 'crudos' (es decir como estan)
     for x in rdblChart["SyncTrack"]:
