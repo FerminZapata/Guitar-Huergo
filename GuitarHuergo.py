@@ -132,6 +132,15 @@ TN = {} # Este diccionario guarda las notas transparentes
 for img in data:
     TN[img[:-4]] = pygame.image.load(os.path.join(tap_path,img)).convert_alpha()
 
+long_path = os.path.join(note_assets, "Long")
+
+data = os.listdir(long_path)
+
+LN = {} # Este diccionario guarda las notas largas
+
+for img in data:
+    LN[img[:-4]] = pygame.image.load(os.path.join(long_path,img)).convert_alpha()
+
 notes = {"hammer":HN,
          "pull":PO,
          "tap":TN}
@@ -231,6 +240,24 @@ def draw_notes(lista):
             else:
                 i.update()
 
+class test:
+    def __init__(self, surf):
+        self.surf = surf
+        self.pos = (650,445)
+
+    def update(self):
+        if self.pos[1] < 900:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_q]:
+                print("Hello")
+                note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
+                self.pos = (self.pos[0]-4.3*self.spd,self.pos[1])
+                self.add += 0.02*self.spd
+                self.spd += 0.005
+                window.blit(note,self.pos)
+
+longtest = test(LN["Blong"])
+
 def draw_frets():
     if pygame.time.get_ticks() - o_time  >= 0:
         o_time = pygame.time.get_ticks() + (bpm * 60)/4
@@ -240,6 +267,7 @@ def draw_frets():
             current_fret = 0
         temp = Fret(fret[current_fret],bpm)
         frets.insert(0,temp)
+
 drawable_notes = [] # Lista que almacena las notas actuales
 
 gamepad_mode = True
@@ -365,6 +393,8 @@ while True:
                 drawable_notes.remove(n)
 
     draw_notes(drawable_notes)
+
+    longtest.update()
 
     pygame.display.update()
     clock.tick(60)
