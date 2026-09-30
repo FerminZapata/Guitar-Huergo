@@ -1,4 +1,6 @@
-import pygame, os
+import pygame, os, LectorDeCanciones
+
+chartPath = LectorDeCanciones.main()
 
 width = 1500
 height = 900
