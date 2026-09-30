@@ -8,7 +8,7 @@ ejecucion = True
 screen = pygame.display.set_mode((width, height))
 mouse_sobre_boton = False
 icon_path = os.path.join(os.path.dirname(__file__), "LOGO3.ico")
-menuassets_path = os.path.join(os.path.dirname(__file__), "Assets", "Menu")
+menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
 icono = pygame.image.load(icon_path)
 pygame.display.set_icon(icono)
 collision = pygame.Rect(0, 0, 50, 50)
@@ -29,7 +29,7 @@ class button:
             screen.blit(self.surf_normal, self.pos)
 
 menu = []
-background = pygame.image.load((menuassets_path, "FONDO.png")).convert_alpha()
+background = pygame.image.load(os.path.join(menuassets_path, "FONDO.png")).convert_alpha()
 logo = pygame.image.load(os.path.join(menuassets_path, "LOGO3.png")).convert_alpha()
 boton_quickplay = pygame.image.load(os.path.join(menuassets_path, "QUICK PLAY SIN PRESIONAR.png")).convert_alpha()
 boton_campaign = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN SIN PRESIONAR.png")).convert_alpha()
@@ -39,11 +39,11 @@ boton_quickplay_presionado = pygame.image.load(os.path.join(menuassets_path, "QU
 boton_salir_presionado = pygame.image.load(os.path.join(menuassets_path, "SALIR PRESIONADO.png")).convert_alpha()
 boton_campaign_presionado = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN PRESIONADO.png")).convert_alpha()
 boton_opciones_presionado = pygame.image.load(os.path.join(menuassets_path, "OPCIONES PRESIONADO.png")).convert_alpha()
-var1 = button((width/2-logo.width/2, -2),logo)
-var2 = button((width/2-boton_quickplay.width/2, 400), boton_quickplay, boton_quickplay_presionado)
-var3 = button((width/2-boton_campaign.width/2, 500), boton_campaign, boton_campaign_presionado)
-var4 = button((width/2-boton_opciones.width/2,600), boton_opciones, boton_opciones_presionado)
-var5 = button((width/2-boton_salir.width/2, 700), boton_salir, boton_salir_presionado)
+var1 = button((width/2-logo.get_width()/2, -2),logo)
+var2 = button((width/2-boton_quickplay.get_width()/2, 400), boton_quickplay, boton_quickplay_presionado)
+var3 = button((width/2-boton_campaign.get_width()/2, 500), boton_campaign, boton_campaign_presionado)
+var4 = button((width/2-boton_opciones.get_width()/2,600), boton_opciones, boton_opciones_presionado)
+var5 = button((width/2-boton_salir.get_width()/2, 700), boton_salir, boton_salir_presionado)
 menu.extend([var1, var2, var3, var4, var5])
     
 
