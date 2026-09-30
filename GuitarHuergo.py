@@ -196,10 +196,41 @@ class Note_Class:
 
             window.blit(note,self.pos)
 
+class test:
+    def __init__(self, surf):
+        self.spd = bpm/60
+        self.add = 0.1
+        self.surf = surf
+        #self.pos = (750,450)
+        #self.scale = [self.surf.get_width()*0.1,self.surf.get_height()*0.05]
+        self.pos = (590,390)
+        self.scale = [self.surf.get_width()*0.1+420,self.surf.get_height()*0.05+450]
+
+    def update(self):
+        if self.pos[1] < 900:
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_q]:
+                note = pygame.transform.scale(self.surf, (self.scale[0], self.scale[1]))
+            #    print(self.scale)
+            #    if self.scale[0] < 1000 and self.scale[1] < 1000:
+            #        self.pos = (self.pos[0]-2,self.pos[1]-1.11)
+            #        self.add += 0.02*self.spd
+            #        self.spd += 0.005
+            #        temp = [self.scale[0], self.scale[1]]
+            #        self.scale.clear()
+            #        self.scale.append(temp[0]+ 12)
+            #        self.scale.append(temp[1]+ 12)
+                window.blit(note,self.pos)
+            #else:
+            #    self.spd = bpm/60
+            #    self.add = 0.42
+            #    self.pos = (750,450)
+            #    self.scale = [self.surf.get_width()*0.2,self.surf.get_height()*0.05]
+
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
 
-    window.blit(notecol,(500,675))
+    window.blit(notecol,(500,700))
 
     pos_def = (width/2 - background.get_width()/2,height - background.get_height())
 
@@ -238,24 +269,6 @@ def draw_notes(lista):
             else:
                 i.update()
 
-class test:
-    def __init__(self, surf):
-        self.surf = surf
-        self.pos = (650,445)
-
-    def update(self):
-        if self.pos[1] < 900:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                print("Hello")
-                note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
-                self.pos = (self.pos[0]-4.3*self.spd,self.pos[1])
-                self.add += 0.02*self.spd
-                self.spd += 0.005
-                window.blit(note,self.pos)
-
-longtest = test(LN["Blong"])
-
 def draw_frets():
     if pygame.time.get_ticks() - o_time  >= 0:
         o_time = pygame.time.get_ticks() + (bpm * 60)/4
@@ -281,6 +294,8 @@ o_time = pygame.time.get_ticks()
 bpm = 60
 
 point = 0
+
+longtest = test(LN["Blong"])
 
 while True:
     for event in pygame.event.get():
