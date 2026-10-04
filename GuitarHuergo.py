@@ -1,6 +1,4 @@
-import pygame, os, LectorDeCanciones
-
-chartPath = LectorDeCanciones.main()
+import pygame, os
 
 width = 1500
 height = 900
@@ -158,6 +156,31 @@ rowList = ["Green","Red","Yellow","Blue","Orange","Open"]
 specialList = ["hammer","pull","tap"]
 posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
 
+class long:
+    def __init__(self, surf, pos, span):
+        self.spd = bpm/60
+        self.add = 0.1
+        self.pos = pos
+        self.surf = surf
+        self.end = pygame.time.get_ticks() + span
+        self.lcut = 0
+        self.cuty = 0
+
+    def move(self):
+        self.start = pygame.time.get_ticks()
+        if self.start <= self.end:
+            if self.lcut <= 430:
+                self.lcut += 8*self.spd
+        elif self.start >= self.end:
+            self.cuty += 8*self.spd
+            self.pos[1] += 8*self.spd
+            if self.pos[1] + self.lcut <= 800:
+                self.lcut += 8*self.add
+        self.add += 0.005*self.spd
+        self.spd += 0.005
+        cut = pygame.Rect(0,self.cuty,self.surf.get_width(),self.lcut)
+        window.blit(self.surf,self.pos,cut)
+
 class Note_Class:
     def __init__(self, note, row, span, special):
         self.spd = bpm/60
@@ -179,6 +202,9 @@ class Note_Class:
         else:
             self.surf = open_note
         self.middle = self.surf.get_height() / 2
+        if span != 0:
+            self.lsurf = LN[self.type]
+            self.long = long(self.lsurf,[self.pos[0]-163,self.pos[1]+15],span)
 
     def update(self):
         if self.pos[1] != 900:
@@ -195,39 +221,9 @@ class Note_Class:
             else:
                 self.add += 0.022*self.spd
                 self.spd += 0.005
-
+            if self.span != 0:
+                self.long.move()
             window.blit(note,self.pos)
-
-class test:
-    def __init__(self, surf):
-        self.spd = bpm/60
-        self.add = 0.1
-        self.surf = surf
-        #self.pos = (750,450)
-        #self.scale = [self.surf.get_width()*0.1,self.surf.get_height()*0.05]
-        self.pos = (590,390)
-        self.scale = [self.surf.get_width()*0.1+420,self.surf.get_height()*0.05+450]
-
-    def update(self):
-        if self.pos[1] < 900:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                note = pygame.transform.scale(self.surf, (self.scale[0], self.scale[1]))
-            #    print(self.scale)
-            #    if self.scale[0] < 1000 and self.scale[1] < 1000:
-            #        self.pos = (self.pos[0]-2,self.pos[1]-1.11)
-            #        self.add += 0.02*self.spd
-            #        self.spd += 0.005
-            #        temp = [self.scale[0], self.scale[1]]
-            #        self.scale.clear()
-            #        self.scale.append(temp[0]+ 12)
-            #        self.scale.append(temp[1]+ 12)
-                window.blit(note,self.pos)
-            #else:
-            #    self.spd = bpm/60
-            #    self.add = 0.42
-            #    self.pos = (750,450)
-            #    self.scale = [self.surf.get_width()*0.2,self.surf.get_height()*0.05]
 
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
@@ -297,7 +293,7 @@ bpm = 60
 
 point = 0
 
-longtest = test(LN["Blong"])
+sample = long(LN["Blue"],[605,435],100)
 
 while True:
     for event in pygame.event.get():
@@ -327,7 +323,7 @@ while True:
                 note = Note_Class("N",2,0,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP3:
-                note = Note_Class("N",3,0,0)
+                note = Note_Class("N",3,100,0)
                 drawable_notes.insert(0,note)
             elif event.key == pygame.K_KP4:
                 note = Note_Class("N",4,0,0)
@@ -404,12 +400,12 @@ while True:
     
     if len(drawable_notes) != 0:
         for n in drawable_notes:
-            if n.pos[1] >= 900:
+            if n.pos[1] >= 750:
                 drawable_notes.remove(n)
 
     draw_notes(drawable_notes)
 
-    longtest.update()
+    sample.move()
 
     pygame.display.update()
     clock.tick(60)
