@@ -9,6 +9,7 @@ screen = pygame.display.set_mode((width, height))
 mouse_sobre_boton = False
 icon_path = os.path.join(os.path.dirname(__file__), "LOGO3.ico")
 menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
+game_state = "Menu_Principal"
 icono = pygame.image.load(icon_path)
 pygame.display.set_icon(icono)
 collision = pygame.Rect(0, 0, 50, 50)
@@ -27,6 +28,9 @@ class button:
             screen.blit(self.surf_hover, self.pos)
         else:
             screen.blit(self.surf_normal, self.pos)
+
+def draw_menu_quickplay():
+    pass
 
 menu = []
 background = pygame.image.load(os.path.join(menuassets_path, "FONDO.png")).convert_alpha()
@@ -56,6 +60,15 @@ while ejecucion:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             ejecucion = False
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            if var2.rect.collidepoint(event.pos):
+                game_state = "Quickplay"
+            elif var3.rect.collidepoint(event.pos):
+                game_state = "Campaign"
+            elif var4.rect.collidepoint(event.pos):
+                game_state = "Opciones"
+            elif var5.rect.collidepoint(event.pos):
+                ejecucion = False
     pygame.display.flip()
     upt_assets()
     pygame.display.update()
