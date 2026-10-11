@@ -48,12 +48,16 @@ campaign_p = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN PRESIONAD
 options_p = pygame.image.load(os.path.join(menuassets_path, "OPCIONES PRESIONADO.png")).convert_alpha()
 
 var1 = button((width/2-logo.get_width()/2, -2),logo)
-var2 = button((width/2-boton_quickplay.get_width()/2, 400), boton_quickplay, boton_quickplay_presionado)
-var3 = button((width/2-boton_campaign.get_width()/2, 500), boton_campaign, boton_campaign_presionado)
-var4 = button((width/2-boton_opciones.get_width()/2,600), boton_opciones, boton_opciones_presionado)
-var5 = button((width/2-boton_salir.get_width()/2, 700), boton_salir, boton_salir_presionado)
-menu.extend([var1, var2, var3, var4, var5])
-    
+var2 = button((width/2-quick.get_width()/2, 400), quick, quick_p)
+var3 = button((width/2-campaign.get_width()/2, 500), campaign, campaign_p)
+var4 = button((width/2-options.get_width()/2,600), options, options_p)
+var5 = button((width/2-salir.get_width()/2, 700), salir, salir_p)
+
+# DICCIONARIO QUE ALMACENA TODOS LOS BOTONES (UTILIZAR ESTO POR FAVOR)
+menus = {"main":[var1, var2, var3, var4, var5],
+         "quickplay":[var5],
+         "campaign":[var5],
+         "options":[var5],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
