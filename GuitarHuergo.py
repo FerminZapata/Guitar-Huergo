@@ -15,25 +15,25 @@ notecol.set_alpha(90)
 
 notecol.fill((255,255,255))
 
-keys_dict = {pygame.K_a :"G_press",
-             pygame.K_s:"R_press",
-             pygame.K_j:"Y_press",
-             pygame.K_k:"B_press",
-             pygame.K_l:"O_press",
+keys_dict = {pygame.K_a :"Green",
+             pygame.K_s:"Red",
+             pygame.K_j:"Yellow",
+             pygame.K_k:"Blue",
+             pygame.K_l:"Orange",
              pygame.K_SPACE:"Open"}
 
-n_pressed = {"G_press":False,
-             "R_press":False,
-             "Y_press":False,
-             "B_press":False,
-             "O_press":False,
+n_pressed = {"Green":False,
+             "Red":False,
+             "Yellow":False,
+             "Blue":False,
+             "Orange":False,
              "Open":False}
 
-n_held = {"G_press":False,
-          "R_press":False,
-          "Y_press":False,
-          "B_press":False,
-          "O_press":False,
+n_held = {"Green":False,
+          "Red":False,
+          "Yellow":False,
+          "Blue":False,
+          "Orange":False,
           "Open":False}
 
 class Fret:
@@ -164,16 +164,17 @@ specialList = ["hammer","pull","tap"]
 posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
 
 class long:
-    def __init__(self, surf, pos, span):
+    def __init__(self, surf, pos, span,type):
         self.spd = bpm/60
         self.add = 0.1
         self.pos = pos
         self.surf = surf
         self.end = pygame.time.get_ticks() + span
-        self.lcut = 0
+        self.type = type
+        self.lcut = 20
         self.cuty = 0
 
-    def move(self):
+    def move(self,missed):
         self.start = pygame.time.get_ticks()
         if self.start <= self.end:
             if self.lcut <= 430:
@@ -183,6 +184,8 @@ class long:
             self.pos = (self.pos[0],self.pos[1]+8*self.spd)
             if self.pos[1] + self.lcut <= 800:
                 self.lcut += 8*self.add
+            elif not missed and n_held[self.type]:
+                self.lcut -= 8*self.spd
         self.add += 0.005*self.spd
         self.spd += 0.005
         cut = pygame.Rect(0,self.cuty,self.surf.get_width(),self.lcut)
@@ -211,25 +214,26 @@ class Note_Class:
         self.middle = self.surf.get_height() / 2
         if span != 0 and self.row != 7:
             self.lsurf = LN[self.type]
-            self.long = long(self.lsurf,longNotePos[self.type],span)
+            self.long = long(self.lsurf,longNotePos[self.type],span,self.type)
+        self.pressed = False
+        self.missed = False
 
     def update(self):
         if self.pos[1] != 900:
             note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
             self.middle = note.get_height() / 2
-            if self.row != 7:
-                self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 7:
-                self.pos = (self.pos[0]+posChangeList[self.row-2]*self.spd,self.pos[1]+8*self.spd)
-            if self.row != 7:
-                self.add += 0.005*self.spd
-                self.spd += 0.005
-            else:
-                self.add += 0.022*self.spd
-                self.spd += 0.005
             if self.span != 0 and self.row != 7:
-                self.long.move()
-            window.blit(note,self.pos)
+                self.long.move(self.missed)
+            if not self.pressed and not self.missed:
+                if self.row != 7:
+                    self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
+                    self.add += 0.005*self.spd
+                    self.spd += 0.005
+                elif self.row == 7:
+                    self.pos = (self.pos[0]+posChangeList[self.row-2]*self.spd,self.pos[1]+8*self.spd)
+                    self.add += 0.022*self.spd
+                    self.spd += 0.005 
+                window.blit(note,self.pos)
 
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
@@ -246,6 +250,9 @@ def draw_background():
                 surf.update()
 
     window.blit(background,pos_def)
+
+def draw_speakers():
+    pos_def = (width/2 - background.get_width()/2,height - background.get_height())
 
     teclas = pygame.key.get_pressed()
 
@@ -389,14 +396,13 @@ while True:
     draw_background()
 
     for press in n_pressed:
-        print(n_pressed[press],press)
         if n_pressed[press] == "normal":
             if len(drawable_notes) != 0:
                 for n in drawable_notes[:]:
                     if n.type[0] != press[0]:
                         continue
                     elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
-                            drawable_notes.remove(n)
+                            n.pressed = True
                             n_pressed["Open"] = "none"
                             space_pressed = False
                             point += 1
@@ -411,15 +417,17 @@ while True:
                         n_pressed["Open"] = "none"
                         space_pressed = False
                         point += 1
-                        drawable_notes.remove(n)
+                        n.pressed = True
             n_pressed[press] = "none"
     
     if len(drawable_notes) != 0:
         for n in drawable_notes:
-            if n.pos[1] >= 750:
-                drawable_notes.remove(n)
+            if n.pos[1] >= 800:
+                n.missed = True
 
     draw_notes(drawable_notes)
+
+    draw_speakers()
 
     pygame.display.update()
     clock.tick(60)
