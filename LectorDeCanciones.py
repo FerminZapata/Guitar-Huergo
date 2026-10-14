@@ -74,7 +74,6 @@ def leerChart(chart):       #Funcion que convierte el chart en un diccionario le
             notes[1] = notes[1].split(" ")
         for notes in rdblFile["EasySingle"]:
             notes[1] = notes[1].split(" ")
-        print(rdblFile)
         return rdblFile
     except FileNotFoundError:
         print("No se encontro el archivo.")
@@ -123,7 +122,7 @@ def tick2ms(target_tick, time_map, resolution):         #funcion para convertir 
 def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
     parsed_notes = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}              #crea una lista para las notas parseadas
     raw_note_chart = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}          #y una para las notas 'crudas'
-    for x in chart["ExpertSingle"]:   #recorre cada seccion de las notas y agrega sus datos a la lista de dtos crudos
+    for x in chart["ExpertSingle"]:   #recorre cada seccion de las notas y agrega sus datos a la lista de datos crudos
         raw_note_chart["ExpertSingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
@@ -145,10 +144,10 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                                 'sustain': x[1][2]}))
     count = 1
     for x in raw_note_chart:
-        for notes in x:   #recorre la lista de datos crudos y hace esto:
-            lane = x['lane']    #extrae la columan en la que esta
-            start_ms = tick2ms(int(x['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
-            end_ms = tick2ms((int(x['tick']) + int(x['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
+        for y in raw_note_chart[x]:   #recorre la lista de datos crudos y hace esto:
+            lane = y['lane']    #extrae la columna en la que esta
+            start_ms = tick2ms(int(y['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
+            end_ms = tick2ms((int(y['tick']) + int(y['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
             duration_ms = end_ms - start_ms   #resta el final con el inicio para calcular cuanto dura
             if count == 1:
                 parsed_notes["ExpertSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
@@ -170,7 +169,8 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                     'duration_ms': duration_ms,
                                     'lane': lane
                                     })
-            count += 1
+        count += 1
+    print(parsed_notes)
     return parsed_notes
 
 
