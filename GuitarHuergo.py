@@ -22,19 +22,19 @@ keys_dict = {pygame.K_a :"Green",
              pygame.K_l:"Orange",
              pygame.K_SPACE:"Open"}
 
-n_pressed = {"Green":False,
-             "Red":False,
-             "Yellow":False,
-             "Blue":False,
-             "Orange":False,
-             "Open":False}
+n_pressed = {"Green":"none",
+             "Red":"none",
+             "Yellow":"none",
+             "Blue":"none",
+             "Orange":"none",
+             "Open":"none"}
 
-n_held = {"Green":False,
-          "Red":False,
-          "Yellow":False,
-          "Blue":False,
-          "Orange":False,
-          "Open":False}
+n_held = {"Green":"none",
+          "Red":"none",
+          "Yellow":"none",
+          "Blue":"none",
+          "Orange":"none",
+          "Open":"none"}
 
 class Fret:
     def __init__(self, surf, bpm):
@@ -121,7 +121,7 @@ for img in data:
     PO[img[:-4]] = pygame.image.load(os.path.join(pulloff_path,img)).convert_alpha()
 
 # Creacion de un diccionario con los assets de las notas Tap
-tap_path = os.path.join(note_assets, "Pull-off")
+tap_path = os.path.join(note_assets, "Tap")
 
 data = os.listdir(tap_path)
 
@@ -184,7 +184,7 @@ class long:
             self.pos = (self.pos[0],self.pos[1]+8*self.spd)
             if self.pos[1] + self.lcut <= 800:
                 self.lcut += 8*self.add
-            elif not missed and n_held[self.type]:
+            elif not missed and n_held[self.type] != "none":
                 self.lcut -= 8*self.spd
         self.add += 0.005*self.spd
         self.spd += 0.005
@@ -319,42 +319,59 @@ while True:
             pygame.quit()
             exit()
         elif event.type == pygame.KEYUP:
+            keys = pygame.key.get_pressed()
             for key in keys_dict:
-                n_pressed[keys_dict[key]] = "none"
-                n_held[keys_dict[key]] = "none"
+                if not keys[key]:
+                    n_pressed[keys_dict[key]] = "none"
+                    n_held[keys_dict[key]] = "none"
             if event.key == pygame.K_SPACE:
                 space_pressed = False
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
             if event.key == pygame.K_q:
-                note = Note_Class("N",0,200,0)
+                note = Note_Class("N",0,20,0)
                 drawable_notes.append(note)
             elif event.key == pygame.K_w:
-                note = Note_Class("N",1,200,0)
+                note = Note_Class("N",1,50,0)
                 drawable_notes.append(note)
             elif event.key == pygame.K_u:
-                note = Note_Class("N",2,200,0)
+                note = Note_Class("N",2,100,0)
                 drawable_notes.append(note)
             elif event.key == pygame.K_i:
                 note = Note_Class("N",3,200,0)
                 drawable_notes.append(note)
             elif event.key == pygame.K_o:
-                note = Note_Class("N",4,200,0)
+                note = Note_Class("N",4,300,0)
                 drawable_notes.append(note)
             elif event.key == pygame.K_z:
-                note = Note_Class("N",0,200,1)
+                note = Note_Class("N",0,0,1)
                 drawable_notes.append(note)
             elif event.key == pygame.K_x:
-                note = Note_Class("N",1,200,1)
+                note = Note_Class("N",1,0,1)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_b:
+                note = Note_Class("N",2,0,1)
                 drawable_notes.append(note)
             elif event.key == pygame.K_n:
-                note = Note_Class("N",2,200,1)
+                note = Note_Class("N",3,0,1)
                 drawable_notes.append(note)
             elif event.key == pygame.K_m:
-                note = Note_Class("N",3,200,1)
+                note = Note_Class("N",4,0,1)
                 drawable_notes.append(note)
-            elif event.key == pygame.K_COMMA:
-                note = Note_Class("N",4,200,1)
+            elif event.key == pygame.K_1:
+                note = Note_Class("N",0,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_2:
+                note = Note_Class("N",1,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_7:
+                note = Note_Class("N",2,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_8:
+                note = Note_Class("N",3,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_9:
+                note = Note_Class("N",4,0,2)
                 drawable_notes.append(note)
             elif event.key == pygame.K_KP_DIVIDE:
                 note = Note_Class("N",7,0,0)
@@ -378,6 +395,7 @@ while True:
                     n_held[pressed] = "normal"
                 else:
                     n_pressed[pressed] = "light"
+                    n_held[pressed] = "light"
             if event.key == pygame.K_p:
                 if gamepad_mode:
                     gamepad_mode = False
@@ -411,19 +429,25 @@ while True:
             temp = False
             if len(drawable_notes) != 0:
                 for n in drawable_notes[:]:
-                    if n.type[0] != press[0] or n.special != 1:
+                    if n.type[0] != press[0] or n.special == 0:
                         continue
                     elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
+                        n.pressed = True
                         n_pressed["Open"] = "none"
                         space_pressed = False
                         point += 1
-                        n.pressed = True
             n_pressed[press] = "none"
     
     if len(drawable_notes) != 0:
-        for n in drawable_notes:
-            if n.pos[1] >= 800:
-                n.missed = True
+        for n in drawable_notes[:]:
+            if n.span != 0:
+                if n.long.pos[1] >= 800:
+                    drawable_notes.remove(n)
+                if n.pos[1] >= 800:
+                    n.missed = True
+            else:
+                if n.pos[1] >= 800:
+                    drawable_notes.remove(n)
 
     draw_notes(drawable_notes)
 
