@@ -30,7 +30,8 @@ class button:
             screen.blit(self.surf_normal, self.pos)
 
 def draw_menu_quickplay():
-    pass
+    background = pygame.image.load(os.path.join(menuassets_path, "FONDO.png")).convert_alpha()
+    
 
 menu = []
 background = pygame.image.load(os.path.join(menuassets_path, "FONDO.png")).convert_alpha()
