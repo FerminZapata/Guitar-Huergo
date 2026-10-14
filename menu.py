@@ -41,22 +41,28 @@ quick = pygame.image.load(os.path.join(menuassets_path, "QUICK PLAY SIN PRESIONA
 campaign = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN SIN PRESIONAR.png")).convert_alpha()
 options = pygame.image.load(os.path.join(menuassets_path, "OPCIONES SIN PRESIONAR.png")).convert_alpha()
 salir = pygame.image.load(os.path.join(menuassets_path, "SALIR SIN PRESIONAR.png")).convert_alpha()
+musica = pygame.image.load(os.path.join(menuassets_path, "MUSICA SIN PRESIONAR.png")).convert_alpha()
+gamepad = pygame.image.load(os.path.join(menuassets_path, "MODO GAMEPAD SIN PRESIONAR.png")).convert_alpha()
 quick_p = pygame.image.load(os.path.join(menuassets_path, "QUICK PLAY PRESIONADO.png")).convert_alpha()
 salir_p = pygame.image.load(os.path.join(menuassets_path, "SALIR PRESIONADO.png")).convert_alpha()
 campaign_p = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN PRESIONADO.png")).convert_alpha()
 options_p = pygame.image.load(os.path.join(menuassets_path, "OPCIONES PRESIONADO.png")).convert_alpha()
+musica_p = pygame.image.load(os.path.join(menuassets_path, "MUSICA PRESIONADO.png")).convert_alpha()
+gamepad_p = pygame.image.load(os.path.join(menuassets_path, "MODO GAMEPAD PRESIONADO.png")).convert_alpha()
 
 var1 = button((width/2-logo.get_width()/2, -2),logo)
 var2 = button((width/2-quick.get_width()/2, 400), quick, quick_p)
 var3 = button((width/2-campaign.get_width()/2, 500), campaign, campaign_p)
 var4 = button((width/2-options.get_width()/2,600), options, options_p)
 var5 = button((width/2-salir.get_width()/2, 700), salir, salir_p)
+var6 = button((width/5-musica.get_width()/5, 250), musica, musica_p)
+var7 = button((width/5-gamepad.get_width()/5, 500), gamepad, gamepad_p)
 
 # DICCIONARIO QUE ALMACENA TODOS LOS BOTONES (UTILIZAR ESTO POR FAVOR)
 menus = {"main":[var1, var2, var3, var4, var5],
          "quickplay":[var5],
          "campaign":[var5],
-         "options":[var5],}
+         "options":[var5, var6, var7],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
