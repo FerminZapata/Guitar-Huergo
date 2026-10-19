@@ -18,7 +18,7 @@ def main():                         #Termina de crear la ruta para su apertura
     print(rutaArchivo)
     return rutaArchivo
 
-chart_path = main()
+#chart_path = main()
 
 def leerChart(chart):       #Funcion que convierte el chart en un diccionario legible con listas
     try:
@@ -81,7 +81,9 @@ def leerChart(chart):       #Funcion que convierte el chart en un diccionario le
         return
 
 def parse_BPM(rdblChart):           #funcion que parsea las bpm
-    Resolution = int(rdblChart["Song"][6][1])   #extraela resolucion de la cancion
+    for prop in rdblChart["Song"]:          #extraela resolucion de la cancion
+        if 'Resolution' in prop:
+            Resolution = int(prop[1])
     time_map = []    #crea el mapa de tiempos
     rawBpmEvents = []     #crea una lista para extraer los cambios de bpm 'crudos' (es decir como estan)
     for x in rdblChart["SyncTrack"]:
@@ -123,22 +125,23 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
     parsed_notes = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}              #crea una lista para las notas parseadas
     raw_note_chart = {'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}          #y una para las notas 'crudas'
     for x in chart["ExpertSingle"]:   #recorre cada seccion de las notas y agrega sus datos a la lista de datos crudos
-        raw_note_chart["ExpertSingle"].append(({'tick': x[0],
+        if 'E' not in x[1]:
+            raw_note_chart["ExpertSingle"].append(({'tick': x[0],
+                                                'type': x[1][0],
+                                                'lane': x[1][1],
+                                                    'sustain': x[1][2]}))
+    for x in chart["HardSingle"]:
+            raw_note_chart["HardSingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
-    for x in chart["HardSingle"]:   
-        raw_note_chart["HardSingle"].append(({'tick': x[0],
-                                                'type': x[1][0],
-                                                'lane': x[1][1],
-                                                'sustain': x[1][2]}))
-    for x in chart["MediumSingle"]:   
-        raw_note_chart["MediumSingle"].append(({'tick': x[0],
+    for x in chart["MediumSingle"]:
+            raw_note_chart["MediumSingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
     for x in chart["EasySingle"]:
-        raw_note_chart["EasySingle"].append(({'tick': x[0],
+            raw_note_chart["EasySingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
@@ -170,13 +173,13 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                     'lane': lane
                                     })
         count += 1
-    print(parsed_notes)
+    #print(parsed_notes)
     return parsed_notes
 
 
 
-rdblFile = leerChart(chart_path)
+#rdblFile = leerChart(chart_path)
 
-time_map = parse_BPM(rdblFile)
+#time_map = parse_BPM(rdblFile)
 
-parseNote(rdblFile, time_map[0], time_map[1])
+#parseNote(rdblFile, time_map[0], time_map[1])

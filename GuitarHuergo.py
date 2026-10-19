@@ -1,7 +1,5 @@
 import pygame, os, LectorDeCanciones
 
-chartPath = LectorDeCanciones.main()
-
 width = 1500
 height = 900
 
@@ -17,26 +15,26 @@ notecol.set_alpha(90)
 
 notecol.fill((255,255,255))
 
-keys_dict = {pygame.K_a :"G_press",
-             pygame.K_s:"R_press",
-             pygame.K_j:"Y_press",
-             pygame.K_k:"B_press",
-             pygame.K_l:"O_press",
+keys_dict = {pygame.K_a :"Green",
+             pygame.K_s:"Red",
+             pygame.K_j:"Yellow",
+             pygame.K_k:"Blue",
+             pygame.K_l:"Orange",
              pygame.K_SPACE:"Open"}
 
-n_pressed = {"g_press":False,
-             "r_press":False,
-             "y_press":False,
-             "b_press":False,
-             "o_press":False,
-             "open":False}
+n_pressed = {"Green":"none",
+             "Red":"none",
+             "Yellow":"none",
+             "Blue":"none",
+             "Orange":"none",
+             "Open":"none"}
 
-n_held = {"g_press":False,
-          "r_press":False,
-          "y_press":False,
-          "b_press":False,
-          "o_press":False,
-          "open":False}
+n_held = {"Green":"none",
+          "Red":"none",
+          "Yellow":"none",
+          "Blue":"none",
+          "Orange":"none",
+          "Open":"none"}
 
 class Fret:
     def __init__(self, surf, bpm):
@@ -123,7 +121,7 @@ for img in data:
     PO[img[:-4]] = pygame.image.load(os.path.join(pulloff_path,img)).convert_alpha()
 
 # Creacion de un diccionario con los assets de las notas Tap
-tap_path = os.path.join(note_assets, "Pull-off")
+tap_path = os.path.join(note_assets, "Tap")
 
 data = os.listdir(tap_path)
 
@@ -153,10 +151,45 @@ startNotePos = {
     "Orange":(800,420),
     "Open":(653,435)
 }
+longNotePos = {
+    "Green":(380,435),
+    "Red":(457,435),
+    "Yellow":(530,435),
+    "Blue":(605,435),
+    "Orange":(680,435),
+}
 
 rowList = ["Green","Red","Yellow","Blue","Orange","Open"]
 specialList = ["hammer","pull","tap"]
 posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
+
+class long:
+    def __init__(self, surf, pos, span,type):
+        self.spd = bpm/60
+        self.add = 0.1
+        self.pos = pos
+        self.surf = surf
+        self.end = pygame.time.get_ticks() + span
+        self.type = type
+        self.lcut = 20
+        self.cuty = 0
+
+    def move(self,missed):
+        self.start = pygame.time.get_ticks()
+        if self.start <= self.end:
+            if self.lcut <= 430:
+                self.lcut += 8*self.spd
+        elif self.start >= self.end:
+            self.cuty += 8*self.spd
+            self.pos = (self.pos[0],self.pos[1]+8*self.spd)
+            if self.pos[1] + self.lcut <= 800:
+                self.lcut += 8*self.add
+            elif not missed and n_held[self.type] != "none":
+                self.lcut -= 8*self.spd
+        self.add += 0.005*self.spd
+        self.spd += 0.005
+        cut = pygame.Rect(0,self.cuty,self.surf.get_width(),self.lcut)
+        window.blit(self.surf,self.pos,cut)
 
 class Note_Class:
     def __init__(self, note, row, span, special):
@@ -179,55 +212,28 @@ class Note_Class:
         else:
             self.surf = open_note
         self.middle = self.surf.get_height() / 2
+        if span != 0 and self.row != 7:
+            self.lsurf = LN[self.type]
+            self.long = long(self.lsurf,longNotePos[self.type],span,self.type)
+        self.pressed = False
+        self.missed = False
 
     def update(self):
         if self.pos[1] != 900:
-            # Actualizacion de la imagen de la nota
             note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
             self.middle = note.get_height() / 2
-            if self.row != 7:
-                self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
-            elif self.row == 7:
-                self.pos = (self.pos[0]+posChangeList[self.row-2]*self.spd,self.pos[1]+8*self.spd)
-            if self.row != 7:
-                self.add += 0.005*self.spd
-                self.spd += 0.005
-            else:
-                self.add += 0.022*self.spd
-                self.spd += 0.005
-
-            window.blit(note,self.pos)
-
-class test:
-    def __init__(self, surf):
-        self.spd = bpm/60
-        self.add = 0.1
-        self.surf = surf
-        #self.pos = (750,450)
-        #self.scale = [self.surf.get_width()*0.1,self.surf.get_height()*0.05]
-        self.pos = (590,390)
-        self.scale = [self.surf.get_width()*0.1+420,self.surf.get_height()*0.05+450]
-
-    def update(self):
-        if self.pos[1] < 900:
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_q]:
-                note = pygame.transform.scale(self.surf, (self.scale[0], self.scale[1]))
-            #    print(self.scale)
-            #    if self.scale[0] < 1000 and self.scale[1] < 1000:
-            #        self.pos = (self.pos[0]-2,self.pos[1]-1.11)
-            #        self.add += 0.02*self.spd
-            #        self.spd += 0.005
-            #        temp = [self.scale[0], self.scale[1]]
-            #        self.scale.clear()
-            #        self.scale.append(temp[0]+ 12)
-            #        self.scale.append(temp[1]+ 12)
+            if self.span != 0 and self.row != 7:
+                self.long.move(self.missed)
+            if not self.pressed and not self.missed:
+                if self.row != 7:
+                    self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
+                    self.add += 0.005*self.spd
+                    self.spd += 0.005
+                elif self.row == 7:
+                    self.pos = (self.pos[0]+posChangeList[self.row-2]*self.spd,self.pos[1]+8*self.spd)
+                    self.add += 0.022*self.spd
+                    self.spd += 0.005 
                 window.blit(note,self.pos)
-            #else:
-            #    self.spd = bpm/60
-            #    self.add = 0.42
-            #    self.pos = (750,450)
-            #    self.scale = [self.surf.get_width()*0.2,self.surf.get_height()*0.05]
 
 def draw_background():
     window.fill("black") # CONVIERTE EL FONDO EN NEGRO
@@ -245,13 +251,16 @@ def draw_background():
 
     window.blit(background,pos_def)
 
+def draw_speakers():
+    pos_def = (width/2 - background.get_width()/2,height - background.get_height())
+
     teclas = pygame.key.get_pressed()
 
     pressed = False
 
     for key in keys_dict:
         if key != pygame.K_SPACE:
-            if teclas[key] and teclas[pygame.K_SPACE] or teclas[key] and gamepad_mode:
+            if teclas[key] and space_pressed or teclas[key] and gamepad_mode:
                 window.blit(spkr_s[keys_dict[key][0]], pos_def)
                 pressed = True
             elif teclas[key]:
@@ -281,9 +290,32 @@ def draw_frets():
         temp = Fret(fret[current_fret],bpm)
         frets.insert(0,temp)
 
+def check_pressed(dicc):
+    temp = False
+    for item in dicc:
+        if dicc[item]:
+            temp = True
+    return temp
+
+chart_path = LectorDeCanciones.main()
+
+rdblFile = LectorDeCanciones.leerChart(chart_path)
+
+time_map = LectorDeCanciones.parse_BPM(rdblFile)
+
+parse = LectorDeCanciones.parseNote(rdblFile, time_map[0], time_map[1])
+
+def chart(time,data):
+    charteo = data[list(data.keys())[0]]
+    for nota in charteo:
+        pass
+    print(charteo)
+
+chart(0,parse)
+
 drawable_notes = [] # Lista que almacena las notas actuales
 
-gamepad_mode = True
+gamepad_mode = False
 
 space_pressed = False
 
@@ -295,9 +327,9 @@ o_time = pygame.time.get_ticks()
 
 bpm = 60
 
-point = 0
+time = 0
 
-longtest = test(LN["Blong"])
+point = 0
 
 while True:
     for event in pygame.event.get():
@@ -305,69 +337,89 @@ while True:
             pygame.quit()
             exit()
         elif event.type == pygame.KEYUP:
+            keys = pygame.key.get_pressed()
             for key in keys_dict:
-                if key != pygame.K_SPACE:
-                    if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                        n_pressed[keys_dict[key]] = "none"
-                        n_held[keys_dict[key]] = "none"
-                else:
-                    if event.key == key:
-                        n_pressed[keys_dict[key]] = "none"
-                        n_held[keys_dict[key]] = "none"
-                        space_pressed = False
+                if not keys[key]:
+                    n_pressed[keys_dict[key]] = "none"
+                    n_held[keys_dict[key]] = "none"
+            if event.key == pygame.K_SPACE:
+                space_pressed = False
         elif event.type == pygame.KEYDOWN:
             pos_def = (width/2 - background.get_width()/2,height - background.get_height())
-            if event.key == pygame.K_KP0:
+            if event.key == pygame.K_q:
                 note = Note_Class("N",0,0,0)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP1:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_w:
                 note = Note_Class("N",1,0,0)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP2:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_u:
                 note = Note_Class("N",2,0,0)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP3:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_i:
                 note = Note_Class("N",3,0,0)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP4:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_o:
                 note = Note_Class("N",4,0,0)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP5:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_z:
                 note = Note_Class("N",0,0,1)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP6:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_x:
                 note = Note_Class("N",1,0,1)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP7:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_b:
                 note = Note_Class("N",2,0,1)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP8:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_n:
                 note = Note_Class("N",3,0,1)
-                drawable_notes.insert(0,note)
-            elif event.key == pygame.K_KP9:
+                drawable_notes.append(note)
+            elif event.key == pygame.K_m:
                 note = Note_Class("N",4,0,1)
-                drawable_notes.insert(0,note)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_1:
+                note = Note_Class("N",0,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_2:
+                note = Note_Class("N",1,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_7:
+                note = Note_Class("N",2,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_8:
+                note = Note_Class("N",3,0,2)
+                drawable_notes.append(note)
+            elif event.key == pygame.K_9:
+                note = Note_Class("N",4,0,2)
+                drawable_notes.append(note)
             elif event.key == pygame.K_KP_DIVIDE:
                 note = Note_Class("N",7,0,0)
-                drawable_notes.insert(0,note)
-            for key in keys_dict:
-                if key != pygame.K_SPACE:
-                    if event.key == key and space_pressed or  event.key == key and gamepad_mode:
-                        n_pressed[keys_dict[key]] = "normal"
-                        n_held[keys_dict[key]] = "normal"
-                    elif event.key == key:
-                        n_pressed[keys_dict[key]] = "light"
-                else:
-                    if event.key == key:
+                drawable_notes.append(note)
+            if event.key == pygame.K_SPACE:
+                keys = pygame.key.get_pressed()
+                space_pressed = False
+
+                for code, name in keys_dict.items():
+                    if name != pygame.K_SPACE and keys[code]:
+                        n_pressed[name] = "normal"
+                        n_held[name] = "normal"
                         space_pressed = True
-                        n_pressed[keys_dict[key]] = "normal"
-                        n_held[keys_dict[key]] = "normal"
+                    if not space_pressed:
+                        n_pressed["Open"] = "normal"
+                        n_held["Open"] = "normal"
+            elif event.key in keys_dict:
+                pressed = keys_dict[event.key]
+                if space_pressed or gamepad_mode:
+                    n_pressed[pressed] = "normal"
+                    n_held[pressed] = "normal"
+                else:
+                    n_pressed[pressed] = "light"
+                    n_held[pressed] = "light"
             if event.key == pygame.K_p:
                 if gamepad_mode:
                     gamepad_mode = False
                 else:
                     gamepad_mode = True
-
+    
     if pygame.time.get_ticks() - o_time  >= 0:
         o_time = pygame.time.get_ticks() + (bpm * 60)/4
         if current_fret != 3:
@@ -382,34 +434,42 @@ while True:
     for press in n_pressed:
         if n_pressed[press] == "normal":
             if len(drawable_notes) != 0:
-                for n in drawable_notes:
+                for n in drawable_notes[:]:
                     if n.type[0] != press[0]:
                         continue
                     elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
-                            drawable_notes.remove(n)
+                            n.pressed = True
+                            n_pressed["Open"] = "none"
+                            space_pressed = False
                             point += 1
             n_pressed[press] = "none"
         elif n_pressed[press] == "light":
             temp = False
             if len(drawable_notes) != 0:
-                for n in drawable_notes:
-                    if n.type[0] != press[0] or n.special != 1:
+                for n in drawable_notes[:]:
+                    if n.type[0] != press[0] or n.special == 0:
                         continue
                     elif n.pos[1] + n.middle >= 650 and n.pos[1] + n.middle <= 750:
-                        drawable_notes.remove(n)
-                        temp = True
-            if temp == True:
-                point += 1
+                        n.pressed = True
+                        n_pressed["Open"] = "none"
+                        space_pressed = False
+                        point += 1
             n_pressed[press] = "none"
     
     if len(drawable_notes) != 0:
-        for n in drawable_notes:
-            if n.pos[1] >= 900:
-                drawable_notes.remove(n)
+        for n in drawable_notes[:]:
+            if n.span != 0:
+                if n.long.pos[1] >= 800:
+                    drawable_notes.remove(n)
+                if n.pos[1] >= 800:
+                    n.missed = True
+            else:
+                if n.pos[1] >= 800:
+                    drawable_notes.remove(n)
 
     draw_notes(drawable_notes)
 
-    longtest.update()
+    draw_speakers()
 
     pygame.display.update()
     clock.tick(60)
