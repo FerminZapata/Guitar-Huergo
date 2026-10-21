@@ -146,40 +146,47 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
     count = 1
+    print(raw_note_chart)
     for x in raw_note_chart:
         for y in raw_note_chart[x]:   #recorre la lista de datos crudos y hace esto:
             lane = y['lane']    #extrae la columna en la que esta
+            type = y['type']
             start_ms = tick2ms(int(y['tick']), time_map, resolution)    #calcula los ms en el que comienza la nota usando la funcion anterior
             end_ms = tick2ms((int(y['tick']) + int(y['sustain'])), time_map, resolution)   #luego hace lo mismo pero sumando lo que dura la nota para calcular cuanto termina
             duration_ms = end_ms - start_ms   #resta el final con el inicio para calcular cuanto dura
             if count == 1:
                 parsed_notes["ExpertSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
                                     'duration_ms': duration_ms,
-                                    'lane': lane
+                                    'lane': lane,
+                                    'type': type
                                     })
             if count == 2:
-                parsed_notes["HardSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                parsed_notes["HardSingle"].append({'start_ms': start_ms,          
                                     'duration_ms': duration_ms,
-                                    'lane': lane
+                                    'lane': lane,
+                                    'type': type
                                     })
             if count == 3:
-                parsed_notes["MediumSingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                parsed_notes["MediumSingle"].append({'start_ms': start_ms,          
                                     'duration_ms': duration_ms,
-                                    'lane': lane
+                                    'lane': lane,
+                                    'type': type
                                     })
             if count == 4:
-                parsed_notes["EasySingle"].append({'start_ms': start_ms,          #finalmente agrega los datos en ms a la lista de notas parseadas
+                parsed_notes["EasySingle"].append({'start_ms': start_ms,          
                                     'duration_ms': duration_ms,
-                                    'lane': lane
+                                    'lane': lane,
+                                    'type': type
                                     })
         count += 1
-    #print(parsed_notes)
+    print(parsed_notes)
     return parsed_notes
 
 
+chart_path = main()
 
-#rdblFile = leerChart(chart_path)
+rdblFile = leerChart(chart_path)
 
-#time_map = parse_BPM(rdblFile)
+time_map = parse_BPM(rdblFile)
 
-#parseNote(rdblFile, time_map[0], time_map[1])
+parseNote(rdblFile, time_map[0], time_map[1])
