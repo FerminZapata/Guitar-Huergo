@@ -157,6 +157,7 @@ longNotePos = {
     "Yellow":(530,435),
     "Blue":(605,435),
     "Orange":(680,435),
+    "Open":(width/2 - background.get_width()/2,height - background.get_height())
 }
 
 rowList = ["Green","Red","Yellow","Blue","Orange","Open"]
@@ -164,9 +165,12 @@ specialList = ["hammer","pull","tap"]
 posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
 
 class long:
-    def __init__(self, surf, pos, span,type):
+    def __init__(self, surf, pos, span,type,row):
         self.spd = bpm/60
-        self.add = 0.1
+        if row != 7:
+            self.add = 0.1
+        else:
+            self.add = 0.005
         self.pos = pos
         self.surf = surf
         self.end = pygame.time.get_ticks() + span
@@ -214,7 +218,10 @@ class Note_Class:
         self.middle = self.surf.get_height() / 2
         if span != 0 and self.row != 7:
             self.lsurf = LN[self.type]
-            self.long = long(self.lsurf,longNotePos[self.type],span,self.type)
+            self.long = long(self.lsurf,longNotePos[self.type],span,self.type,self.row)
+        elif self.row == 7:
+            self.lsurf = LN[self.type]
+            self.long = long(self.lsurf,longNotePos[self.type],span,self.type,self.row)
         self.pressed = False
         self.missed = False
 
@@ -222,7 +229,7 @@ class Note_Class:
         if self.pos[1] != 900:
             note = pygame.transform.scale(self.surf, (int(self.surf.get_width()*self.add), int(self.surf.get_height()*self.add)))
             self.middle = note.get_height() / 2
-            if self.span != 0 and self.row != 7:
+            if self.span != 0:
                 self.long.move(self.missed)
             if not self.pressed and not self.missed:
                 if self.row != 7:
@@ -374,7 +381,7 @@ while True:
                 note = Note_Class("N",4,0,2)
                 drawable_notes.append(note)
             elif event.key == pygame.K_KP_DIVIDE:
-                note = Note_Class("N",7,0,0)
+                note = Note_Class("N",7,100,0)
                 drawable_notes.append(note)
             if event.key == pygame.K_SPACE:
                 keys = pygame.key.get_pressed()
