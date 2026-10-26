@@ -79,6 +79,7 @@ campaign_p = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN PRESIONAD
 options_p = pygame.image.load(os.path.join(menuassets_path, "OPCIONES PRESIONADO.png")).convert_alpha()
 musica_p = pygame.image.load(os.path.join(menuassets_path, "MUSICA PRESIONADO.png")).convert_alpha()
 gamepad_p = pygame.image.load(os.path.join(menuassets_path, "MODO GAMEPAD PRESIONADO.png")).convert_alpha()
+tickact = pygame.image.load(os.path.join(menuassets_path, "tickactivado.png")).convert_alpha()
 
 var1 = button((width/2-logo.get_width()/2, -2),logo)
 var2 = button((width/2-quick.get_width()/2, 500), quick, quick_p)
@@ -87,6 +88,7 @@ var4 = button((width/2-options.get_width()/2,600), options, options_p)
 var5 = button((width/2-salir.get_width()/2, 700), salir, salir_p)
 var6 = button((width/5-musica.get_width()/5, 250), musica, musica_p)
 var7 = button((width/5-gamepad.get_width()/5, 500), gamepad, gamepad_p)
+var8 = button((width/2-tickact.get_width()/2, 500), tickact)
 
 quickity = quick_button((1200,800),"",(width/2-600,height/2-400))
 campaignb = campaign_button((1200,800),"",(width/2-600,height/2-400))
@@ -95,7 +97,7 @@ campaignb = campaign_button((1200,800),"",(width/2-600,height/2-400))
 menus = {"main":[var1, var2, var3, var4, var5],
          "quickplay":[quickity,var5],
          "campaign":[campaignb,var5],
-         "options":[var5, var6, var7],}
+         "options":[var5, var6, var7, var8],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
@@ -119,6 +121,8 @@ while ejecucion:
             elif state != "main":
                 if var5.rect.collidepoint(event.pos):
                     state = "main"
+                if var7.rect.collidepoint(event.pos):
+                    pass
     upt_assets()
     pygame.display.flip()
     clock.tick(60)
