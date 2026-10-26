@@ -47,6 +47,21 @@ class quick_button:
         screen.blit(text,(self.pos[0],self.pos[1]+self.surf.height/2-text.get_height()/2))
         pygame.display.flip()
 
+class campaign_button:
+    def __init__(self,size,text,pos):
+        self.pos = pos
+        self.font = pygame.font.SysFont(None, 30)
+        self.surf = pygame.Rect(pos[0],pos[1],size[0],size[1])
+        self.outline = pygame.Rect(pos[0]-5,pos[1]-5,size[0]+10,size[1]+10)
+        self.text = text
+    
+    def update(self):
+        text = self.font.render(self.text,True,(255,255,255))
+        pygame.draw.rect(screen,(255,255,255),self.outline)
+        pygame.draw.rect(screen,(50,50,50),self.surf)
+        screen.blit(text,(self.pos[0],self.pos[1]+self.surf.height/2-text.get_height()/2))
+        pygame.display.flip()
+
 menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
 game_state = "Menu_Principal"
 
@@ -74,11 +89,12 @@ var6 = button((width/5-musica.get_width()/5, 250), musica, musica_p)
 var7 = button((width/5-gamepad.get_width()/5, 500), gamepad, gamepad_p)
 
 quickity = quick_button((1200,800),"",(width/2-600,height/2-400))
+campaignb = campaign_button((1200,800),"",(width/2-600,height/2-400))
 
 # DICCIONARIO QUE ALMACENA TODOS LOS BOTONES (UTILIZAR ESTO POR FAVOR)
 menus = {"main":[var1, var2, var3, var4, var5],
          "quickplay":[quickity,var5],
-         "campaign":[var5],
+         "campaign":[campaignb,var5],
          "options":[var5, var6, var7],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
