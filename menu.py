@@ -32,7 +32,7 @@ class button:
         else:
             screen.blit(self.surf_normal, self.pos)
 
-class quick_button:
+class quick_surface:
     def __init__(self,size,text,pos):
         self.pos = pos
         self.font = pygame.font.SysFont(None, 30)
@@ -65,39 +65,97 @@ class campaign_button:
 menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
 game_state = "Menu_Principal"
 
-bgnd = pygame.image.load(os.path.join(menuassets_path, "FONDO.png")).convert_alpha()
-logo = pygame.image.load(os.path.join(menuassets_path, "LOGO3.png")).convert_alpha()
-quick = pygame.image.load(os.path.join(menuassets_path, "QUICK PLAY SIN PRESIONAR.png")).convert_alpha()
-campaign = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN SIN PRESIONAR.png")).convert_alpha()
-options = pygame.image.load(os.path.join(menuassets_path, "OPCIONES SIN PRESIONAR.png")).convert_alpha()
-salir = pygame.image.load(os.path.join(menuassets_path, "SALIR SIN PRESIONAR.png")).convert_alpha()
-musica = pygame.image.load(os.path.join(menuassets_path, "MUSICA SIN PRESIONAR.png")).convert_alpha()
-gamepad = pygame.image.load(os.path.join(menuassets_path, "MODO GAMEPAD SIN PRESIONAR.png")).convert_alpha()
-quick_p = pygame.image.load(os.path.join(menuassets_path, "QUICK PLAY PRESIONADO.png")).convert_alpha()
-salir_p = pygame.image.load(os.path.join(menuassets_path, "SALIR PRESIONADO.png")).convert_alpha()
-campaign_p = pygame.image.load(os.path.join(menuassets_path, "CAMPAIGN PRESIONADO.png")).convert_alpha()
-options_p = pygame.image.load(os.path.join(menuassets_path, "OPCIONES PRESIONADO.png")).convert_alpha()
-musica_p = pygame.image.load(os.path.join(menuassets_path, "MUSICA PRESIONADO.png")).convert_alpha()
-gamepad_p = pygame.image.load(os.path.join(menuassets_path, "MODO GAMEPAD PRESIONADO.png")).convert_alpha()
-tickact = pygame.image.load(os.path.join(menuassets_path, "tickactivado.png")).convert_alpha()
+logo_path = os.path.join(menuassets_path,"Logo")
 
-var1 = button((width/2-logo.get_width()/2, -2),logo)
-var2 = button((width/2-quick.get_width()/2, 500), quick, quick_p)
-var3 = button((width/2-campaign.get_width()/2, 400), campaign, campaign_p)
-var4 = button((width/2-options.get_width()/2,600), options, options_p)
-var5 = button((width/2-salir.get_width()/2, 700), salir, salir_p)
-var6 = button((width/5-musica.get_width()/5, 250), musica, musica_p)
-var7 = button((width/5-gamepad.get_width()/5, 500), gamepad, gamepad_p)
-var8 = button((width/2-tickact.get_width()/2, 500), tickact)
+img = pygame.image.load(os.path.join(logo_path,"Logo.png")).convert_alpha()
 
-quickity = quick_button((1200,800),"",(width/2-600,height/2-400))
-campaignb = campaign_button((1200,800),"",(width/2-600,height/2-400))
+Logo = button((width/2-img.get_width()/2, -2),img)
+
+campaign_path = os.path.join(menuassets_path,"Campaign")
+
+normal = None
+pressed = None
+
+for img in os.listdir(campaign_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(campaign_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(campaign_path,img))
+
+Campaign = button((width/2-normal.get_width()/2, 400), pressed, normal)
+
+quick_path = os.path.join(menuassets_path,"Quickplay")
+
+normal = None
+pressed = None
+
+for img in os.listdir(quick_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(quick_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(quick_path,img))
+
+Quickplay = button((width/2-normal.get_width()/2, 500), pressed, normal)
+
+exit_path = os.path.join(menuassets_path,"Exit")
+
+normal = None
+pressed = None
+
+for img in os.listdir(exit_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(exit_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(exit_path,img))
+
+Exit = button((width/2-normal.get_width()/2, 700), pressed, normal)
+
+option_path = os.path.join(menuassets_path,"Options")
+
+normal = None
+pressed = None
+
+for img in os.listdir(option_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(option_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(option_path,img))
+
+Option = button((width/2-normal.get_width()/2,600), pressed, normal)
+
+gamepad_path = os.path.join(menuassets_path,"Gamepad")
+
+normal = None
+pressed = None
+
+for img in os.listdir(gamepad_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(gamepad_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(gamepad_path,img))
+
+Gamepad = button((width/5-normal.get_width()/5, 500), pressed, normal)
+
+music_path = os.path.join(menuassets_path,"Music")
+
+normal = None
+pressed = None
+
+for img in os.listdir(music_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(music_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(music_path,img))
+
+Music = button((width/5-normal.get_width()/5, 250), pressed, normal)
+
+quickity = quick_surface((1200,800),"",(width/2-600,height/2-400))
 
 # DICCIONARIO QUE ALMACENA TODOS LOS BOTONES (UTILIZAR ESTO POR FAVOR)
-menus = {"main":[var1, var2, var3, var4, var5],
-         "quickplay":[quickity,var5],
-         "campaign":[campaignb,var5],
-         "options":[var5, var6, var7, var8],}
+menus = {"main":[Logo, Campaign, Quickplay, Option,Exit],
+         "quickplay":[quickity,Exit],
+         "campaign":[Exit],
+         "options":[Music, Gamepad, Exit],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
@@ -110,19 +168,17 @@ while ejecucion:
             ejecucion = False
         elif event.type == pygame.MOUSEBUTTONUP:
             if state == "main":
-                if var2.rect.collidepoint(event.pos):
+                if Quickplay.rect.collidepoint(event.pos):
                     state = "quickplay"
-                elif var3.rect.collidepoint(event.pos):
+                elif Campaign.rect.collidepoint(event.pos):
                     state = "campaign"
-                elif var4.rect.collidepoint(event.pos):
+                elif Option.rect.collidepoint(event.pos):
                     state = "options"
-                elif var5.rect.collidepoint(event.pos):
+                elif Exit.rect.collidepoint(event.pos):
                     ejecucion = False
             elif state != "main":
-                if var5.rect.collidepoint(event.pos):
+                if Exit.rect.collidepoint(event.pos):
                     state = "main"
-                if var7.rect.collidepoint(event.pos):
-                    pass
     upt_assets()
     pygame.display.flip()
     clock.tick(60)
