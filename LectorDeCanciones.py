@@ -146,7 +146,6 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
     count = 1
-    print(raw_note_chart)
     for x in raw_note_chart:
         for y in raw_note_chart[x]:   #recorre la lista de datos crudos y hace esto:
             lane = y['lane']    #extrae la columna en la que esta
@@ -179,14 +178,4 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                     'type': type
                                     })
         count += 1
-    print(parsed_notes)
     return parsed_notes
-
-
-chart_path = main()
-
-rdblFile = leerChart(chart_path)
-
-time_map = parse_BPM(rdblFile)
-
-parseNote(rdblFile, time_map[0], time_map[1])

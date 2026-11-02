@@ -312,13 +312,15 @@ time_map = LectorDeCanciones.parse_BPM(rdblFile)
 
 parse = LectorDeCanciones.parseNote(rdblFile, time_map[0], time_map[1])
 
-def chart(time,data):
-    charteo = data[list(data.keys())[0]]
-    for nota in charteo:
-        pass
-    print(charteo)
+parse = parse[list(parse.keys())[0]]
 
-chart(0,parse)
+def chart(time,notenum,data):
+    print(notenum)
+    print(data[notenum]["start_ms"])
+    if pygame.time.get_ticks() - time >= data[notenum]["start_ms"]:
+        print(data[notenum])
+        return notenum + 1#, Note_Class(data[notenum]["note"],data[notenum]["row"],data[notenum]["span"],data[notenum]["special"])
+    return notenum#, None
 
 drawable_notes = [] # Lista que almacena las notas actuales
 
@@ -338,6 +340,9 @@ time = 0
 
 point = 0
 
+StartTime = 0
+NoteNum = 0
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -352,55 +357,6 @@ while True:
             if event.key == pygame.K_SPACE:
                 space_pressed = False
         elif event.type == pygame.KEYDOWN:
-            pos_def = (width/2 - background.get_width()/2,height - background.get_height())
-            if event.key == pygame.K_q:
-                note = Note_Class("N",0,0,0)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_w:
-                note = Note_Class("N",1,0,0)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_u:
-                note = Note_Class("N",2,0,0)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_i:
-                note = Note_Class("N",3,0,0)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_o:
-                note = Note_Class("N",4,0,0)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_z:
-                note = Note_Class("N",0,0,1)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_x:
-                note = Note_Class("N",1,0,1)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_b:
-                note = Note_Class("N",2,0,1)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_n:
-                note = Note_Class("N",3,0,1)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_m:
-                note = Note_Class("N",4,0,1)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_1:
-                note = Note_Class("N",0,0,2)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_2:
-                note = Note_Class("N",1,0,2)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_7:
-                note = Note_Class("N",2,0,2)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_8:
-                note = Note_Class("N",3,0,2)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_9:
-                note = Note_Class("N",4,0,2)
-                drawable_notes.append(note)
-            elif event.key == pygame.K_KP_DIVIDE:
-                note = Note_Class("N",7,100,0)
-                drawable_notes.append(note)
             if event.key == pygame.K_SPACE:
                 keys = pygame.key.get_pressed()
                 space_pressed = False
@@ -435,6 +391,11 @@ while True:
             current_fret = 0
         temp = Fret(fret[current_fret],bpm)
         frets.insert(0,temp)
+
+    if pygame.time.get_ticks() >= 10000 and pygame.time.get_ticks() <= 10020:
+        StartTime = pygame.time.get_ticks()
+    elif pygame.time.get_ticks() >= 11000:
+        NoteNum = chart(StartTime,NoteNum,parse)
 
     draw_background()
 
