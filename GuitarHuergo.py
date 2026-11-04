@@ -165,7 +165,7 @@ specialList = ["hammer","pull","tap"]
 posChangeList = [-4.5,-2.8,-1,1,2.7,-4.2]
 
 class long:
-    def __init__(self, surf, pos, span,type,row):
+    def __init__(self, surf, pos, span,TYPE,row):
         self.spd = bpm/60
         if row != 7:
             self.add = 0.1
@@ -174,7 +174,7 @@ class long:
         self.pos = pos
         self.surf = surf
         self.end = pygame.time.get_ticks() + span
-        self.type = type
+        self.type = TYPE
         self.lcut = 20
         self.cuty = 0
 
@@ -210,16 +210,16 @@ class Note_Class:
             self.type = rowList[row-2]
         specialTemp = specialList[special]
         self.pos = startNotePos[self.type]
-        type = notes[specialTemp]
+        TYPE = notes[specialTemp]
         if row != 7:
-            self.surf = type[self.type]
+            self.surf = TYPE[self.type]
         else:
             self.surf = open_note
         self.middle = self.surf.get_height() / 2
         if span != 0 and self.row != 7:
             self.lsurf = LN[self.type]
             self.long = long(self.lsurf,longNotePos[self.type],span,self.type,self.row)
-        elif self.row == 7:
+        elif span != 0 and self.row == 7:
             self.lsurf = LN[self.type]
             self.long = long(self.lsurf,longNotePos[self.type],span,self.type,self.row)
         self.pressed = False
@@ -315,12 +315,19 @@ parse = LectorDeCanciones.parseNote(rdblFile, time_map[0], time_map[1])
 parse = parse[list(parse.keys())[0]]
 
 def chart(time,notenum,data):
-    print(notenum)
-    print(data[notenum]["start_ms"])
     if pygame.time.get_ticks() - time >= data[notenum]["start_ms"]:
-        print(data[notenum])
-        return notenum + 1#, Note_Class(data[notenum]["note"],data[notenum]["row"],data[notenum]["span"],data[notenum]["special"])
-    return notenum#, None
+        if data[notenum]["start_ms"] == data[notenum+1]["start_ms"] and (data[notenum+1]["lane"] == "5" or data[notenum+1]["lane"] == "6"):
+            if data[notenum+1]["lane"] == "5":
+                return notenum + 2, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),1)
+            elif data[notenum+1]["lane"] == "6":
+                return notenum + 2, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),2)
+            else:
+                return notenum + 1, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),0)
+        elif data[notenum]["type"] != "S":
+            return notenum + 1, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),0)
+        else:
+            return notenum + 1, None
+    return notenum, None
 
 drawable_notes = [] # Lista que almacena las notas actuales
 
@@ -395,7 +402,9 @@ while True:
     if pygame.time.get_ticks() >= 10000 and pygame.time.get_ticks() <= 10020:
         StartTime = pygame.time.get_ticks()
     elif pygame.time.get_ticks() >= 11000:
-        NoteNum = chart(StartTime,NoteNum,parse)
+        NoteNum, NewNote = chart(StartTime,NoteNum,parse)
+        if NewNote != None:
+            drawable_notes.append(NewNote)
 
     draw_background()
 
