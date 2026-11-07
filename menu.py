@@ -24,6 +24,19 @@ state = "main"
 cancion_elegida = None
 modo_juego = None   # "quickplay" o "campaign" (para saber si hay que registrar progreso)
 
+# ---------------------------------------------------------------------------
+# OPCIONES: todo se guarda en este diccionario, el juego puede leerlo desde aca
+#   "volumen": 0.0 a 1.0        "gamepad": True / False
+# ---------------------------------------------------------------------------
+opciones = {"volumen": 0.5, "gamepad": False}
+
+def aplicar_volumen():
+    # aplica el volumen a la musica que este sonando (si el mixer esta activo)
+    if pygame.mixer.get_init():
+        pygame.mixer.music.set_volume(opciones["volumen"])
+
+aplicar_volumen()
+
 # DEFINICION DE LA CLASE BOTON
 class button:
     def __init__(self, pos, surf_normal, surf_hover=None):
@@ -195,6 +208,72 @@ class song_menu:
             pygame.draw.rect(screen, (255, 255, 255), (track.x, thumb_y, track.width, thumb_h), border_radius=4)
 
 
+# BARRA DE VOLUMEN: se arrastra con el mouse (tambien rueda del mouse y flechas izq/der)
+class volume_slider:
+    def __init__(self, pos, length, key):
+        self.key = key
+        self.track = pygame.Rect(pos[0], pos[1] - 6, length, 12)         # la barra
+        self.hit = pygame.Rect(pos[0] - 20, pos[1] - 25, length + 40, 50)  # zona clickeable (mas grande)
+        self.dragging = False
+        self.font = pygame.font.SysFont(None, 44)
+
+    def set_value(self, v):
+        opciones[self.key] = max(0.0, min(1.0, round(v, 2)))
+        aplicar_volumen()
+
+    def set_from_x(self, x):
+        self.set_value((x - self.track.left) / self.track.width)
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.hit.collidepoint(event.pos):
+                self.dragging = True
+                self.set_from_x(event.pos[0])
+        elif event.type == pygame.MOUSEMOTION and self.dragging:
+            self.set_from_x(event.pos[0])
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            self.dragging = False
+        elif event.type == pygame.MOUSEWHEEL and self.hit.collidepoint(pygame.mouse.get_pos()):
+            self.set_value(opciones[self.key] + 0.05 * event.y)
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_LEFT:
+                self.set_value(opciones[self.key] - 0.05)
+            elif event.key == pygame.K_RIGHT:
+                self.set_value(opciones[self.key] + 0.05)
+
+    def update(self):
+        v = opciones[self.key]
+        activo = self.dragging or self.hit.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, (70, 70, 70), self.track, border_radius=6)
+        llena = pygame.Rect(self.track.left, self.track.top, int(self.track.width * v), self.track.height)
+        if llena.width > 0:
+            pygame.draw.rect(screen, (200, 110, 0), llena, border_radius=6)
+        cx = self.track.left + int(self.track.width * v)
+        radio = 18 if activo else 15
+        pygame.draw.circle(screen, (255, 255, 255), (cx, self.track.centery), radio)
+        pygame.draw.circle(screen, (200, 110, 0), (cx, self.track.centery), radio, 3)
+        txt = self.font.render(str(round(v * 100)) + "%", True, (255, 255, 255))
+        screen.blit(txt, (self.track.right + 30, self.track.centery - txt.get_height() / 2))
+
+
+# CASILLA CON TICK: el tick (tickactivado.png) aparece solo cuando la opcion esta activada
+class tick_box:
+    def __init__(self, pos, size, key, tick_img):
+        self.key = key
+        self.rect = pygame.Rect(pos[0], pos[1], size, size)
+        self.tick = pygame.transform.smoothscale(tick_img, (size - 20, size - 20))
+
+    def toggle(self):
+        opciones[self.key] = not opciones[self.key]
+
+    def update(self):
+        hover = self.rect.collidepoint(pygame.mouse.get_pos())
+        pygame.draw.rect(screen, (30, 30, 30), self.rect, border_radius=10)
+        pygame.draw.rect(screen, (255, 215, 60) if hover else (255, 255, 255), self.rect, 5, border_radius=10)
+        if opciones[self.key]:
+            screen.blit(self.tick, (self.rect.x + 10, self.rect.y + 10))
+
+
 menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
 game_state = "Menu_Principal"
 
@@ -282,6 +361,11 @@ for img in os.listdir(music_path):
 
 Music = button((width/5-normal.get_width()/5, 250), pressed, normal)
 
+# controles de la pantalla de opciones
+tick_img = pygame.image.load(os.path.join(menuassets_path, "tickactivado.png")).convert_alpha()
+volumen_slider = volume_slider((760, 300), 300, "volumen")           # al lado del boton MUSICA
+gamepad_check = tick_box((1060, 500), 100, "gamepad", tick_img)     # al lado del boton MODO GAMEPAD
+
 # ---------------------------------------------------------------------------
 # CAMPAÑA: tiers de canciones, cada uno mas dificil que el anterior
 # Cada cancion es (nombre, dificultad de 1 a 5). La dificultad es una propuesta,
@@ -350,7 +434,7 @@ song_menus = {"quickplay": quickity, "campaign": campaignity}
 menus = {"main":[Logo, Campaign, Quickplay, Option,Exit],
          "quickplay":[quickity,Exit],
          "campaign":[campaignity,Exit],
-         "options":[Music, Gamepad, Exit],}
+         "options":[Music, volumen_slider, Gamepad, gamepad_check, Exit],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
@@ -362,6 +446,8 @@ while ejecucion:
         if event.type == pygame.QUIT:
             ejecucion = False
             continue
+        if state == "options":
+            volumen_slider.handle_event(event)
         if state in song_menus:
             elegida = song_menus[state].handle_event(event)
             if elegida is not None:
@@ -390,6 +476,9 @@ while ejecucion:
             elif state != "main":
                 if Exit.rect.collidepoint(event.pos):
                     state = "main"
+                elif state == "options" and (Gamepad.rect.collidepoint(event.pos)
+                                             or gamepad_check.rect.collidepoint(event.pos)):
+                    gamepad_check.toggle()   # click en el boton o en la casilla
     upt_assets()
     pygame.display.flip()
     clock.tick(60)
