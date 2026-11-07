@@ -1,4 +1,4 @@
-import pygame, os, LectorDeCanciones
+import pygame, os, LectorDeCancionesRemake
 
 width = 1500
 height = 900
@@ -304,13 +304,13 @@ def check_pressed(dicc):
             temp = True
     return temp
 
-chart_path = LectorDeCanciones.main()
+chart_path = LectorDeCancionesRemake.main()
 
-rdblFile = LectorDeCanciones.leerChart(chart_path)
+rdblFile = LectorDeCancionesRemake.leerChart(chart_path,"expert")
 
-time_map = LectorDeCanciones.parse_BPM(rdblFile)
+time_map = LectorDeCancionesRemake.parse_BPM(rdblFile)
 
-parse = LectorDeCanciones.parseNote(rdblFile, time_map[0], time_map[1])
+parse = LectorDeCancionesRemake.parseNote(rdblFile,"Expert", time_map[0], time_map[1])
 
 parse = parse[list(parse.keys())[0]]
 

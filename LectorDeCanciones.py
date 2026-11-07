@@ -26,6 +26,7 @@ def leerChart(chart):       #Funcion que convierte el chart en un diccionario le
             rdblFile = {'Song': [], 'SyncTrack': [], 'Events': [], 'ExpertSingle': [], 'HardSingle': [], 'MediumSingle': [], 'EasySingle': []}        #se crea el diccionario
             contador = 0
             for linea in archivo:
+                print(linea)
                 if "[Song]" in linea or "[SyncTrack]" in linea or "[Events]" in linea or "[HardSingle]" in linea or "[ExpertSingle]" in linea or "[EasySingle]" in linea or "[MediumSingle]" in linea:
                     contador += 1
                 else:
@@ -131,16 +132,19 @@ def parseNote(chart, time_map, resolution):    #funcion que parsea las notas
                                                 'lane': x[1][1],
                                                     'sustain': x[1][2]}))
     for x in chart["HardSingle"]:
+        if 'E' not in x[1]:
             raw_note_chart["HardSingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
     for x in chart["MediumSingle"]:
+        if 'E' not in x[1]:
             raw_note_chart["MediumSingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
                                                 'sustain': x[1][2]}))
     for x in chart["EasySingle"]:
+        if 'E' not in x[1]:
             raw_note_chart["EasySingle"].append(({'tick': x[0],
                                                 'type': x[1][0],
                                                 'lane': x[1][1],
