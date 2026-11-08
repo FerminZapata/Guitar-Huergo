@@ -1,4 +1,4 @@
-import pygame, os
+import pygame, os, re, math
 
 width = 1500
 height = 900
@@ -23,6 +23,7 @@ state = "main"
 # CANCION QUE ELIGIO EL JUGADOR (None si todavia no eligio ninguna)
 cancion_elegida = None
 modo_juego = None   # "quickplay" o "campaign" (para saber si hay que registrar progreso)
+enter_bloqueado = False   # ignora Enter/Espacio repetidos al cambiar de pantalla (ver loop principal)
 
 # ---------------------------------------------------------------------------
 # OPCIONES: todo se guarda en este diccionario, el juego puede leerlo desde aca
@@ -274,6 +275,287 @@ class tick_box:
             screen.blit(self.tick, (self.rect.x + 10, self.rect.y + 10))
 
 
+# ---------------------------------------------------------------------------
+# CANCIONES: lee el song.ini de cada carpeta dentro de Canciones/
+# ---------------------------------------------------------------------------
+canciones_path = os.path.join(os.path.dirname(__file__), "Canciones")
+
+def leer_ini(path):
+    # devuelve un diccionario con lo que hay dentro de [song] (claves en minuscula)
+    datos = {}
+    try:
+        with open(path, encoding="utf-8-sig", errors="replace") as f:
+            en_song = False
+            for linea in f:
+                linea = linea.strip()
+                if linea.startswith("["):
+                    en_song = linea.lower() == "[song]"
+                elif en_song and "=" in linea:
+                    clave, valor = linea.split("=", 1)
+                    datos[clave.strip().lower()] = valor.strip()
+    except OSError:
+        pass
+    return datos
+
+def limpiar_texto(t):
+    t = re.sub(r"<[^>]+>", "", t)         # saca etiquetas tipo <color=orange>...</color>
+    return t.replace('\\"', '"').strip()   # y las comillas escapadas
+
+def normalizar(nombre):
+    return limpiar_texto(nombre).lower()
+
+# canciones_info["enter sandman"] = {"carpeta": ruta, "ini": {...datos del song.ini...}}
+canciones_info = {}
+if os.path.isdir(canciones_path):
+    for nombre_carpeta in sorted(os.listdir(canciones_path)):
+        ruta = os.path.join(canciones_path, nombre_carpeta)
+        datos = leer_ini(os.path.join(ruta, "song.ini"))
+        if "name" in datos:
+            canciones_info[normalizar(datos["name"])] = {"carpeta": ruta, "ini": datos}
+
+
+# ---------------------------------------------------------------------------
+# PANTALLA DE INFORMACION DE LA CANCION (estilo Clone Hero)
+# Aparece al elegir una cancion en Quickplay o Campaña. Flechas / mouse para moverse,
+# Enter o click para elegir, ESC para volver a la lista.
+# ---------------------------------------------------------------------------
+def crear_fondo(w, h):
+    # degradado azul (centro claro, bordes oscuros, toque violeta abajo a la izquierda)
+    cw, ch = 100, 60
+    chico = pygame.Surface((cw, ch))
+    for x in range(cw):
+        for y in range(ch):
+            fx, fy = x / (cw - 1), y / (ch - 1)
+            d = min(1.0, math.hypot((fx - 0.5) * 1.3, (fy - 0.45) * 1.6) / 0.75)
+            color = lerp_color((24, 120, 178), (38, 52, 72), d)
+            m = max(0.0, 1.0 - fx * 1.6) * max(0.0, (fy - 0.45) / 0.55)
+            chico.set_at((x, y), lerp_color(color, (78, 56, 82), m * 0.8))
+    return pygame.transform.smoothscale(chico, (w, h))
+
+def recortar(texto, fuente, ancho):
+    # corta el texto con "..." si no entra en el ancho dado
+    if fuente.size(texto)[0] <= ancho:
+        return texto
+    while texto and fuente.size(texto + "...")[0] > ancho:
+        texto = texto[:-1]
+    return texto + "..."
+
+def wrap_text(texto, fuente, ancho, max_lineas):
+    # parte un texto largo en lineas que entren en el ancho dado
+    lineas, actual = [], ""
+    for palabra in texto.split():
+        prueba = (actual + " " + palabra).strip()
+        if fuente.size(prueba)[0] <= ancho:
+            actual = prueba
+        else:
+            if actual:
+                lineas.append(actual)
+            actual = palabra
+    if actual:
+        lineas.append(actual)
+    if len(lineas) > max_lineas:
+        lineas = lineas[:max_lineas]
+        lineas[-1] = recortar(lineas[-1] + "...", fuente, ancho)
+    return lineas
+
+# instrumentos que se muestran en la dificultad: (nombre, clave del song.ini)
+INSTRUMENTOS = [("Banda", "diff_band"), ("Guitarra", "diff_guitar"), ("Bajo", "diff_bass"),
+                ("Batería", "diff_drums"), ("Teclado", "diff_keys"), ("Voz", "diff_vocals")]
+
+class song_detail:
+    # OJO: la fuente por defecto de pygame recorta las MAYUSCULAS con tilde (Á, Ó...); usar minusculas con tilde
+    ANCHO = 860
+
+    def __init__(self):
+        self.song = None          # diccionario de la cancion elegida (el de la lista)
+        self.origen = "main"      # de que lista vino ("quickplay" o "campaign")
+        self.info = None          # {"carpeta":..., "ini":...} o None si no hay carpeta
+        self.datos = {}           # lo que dice el song.ini
+        self.titulo = ""
+        self.frase = []
+        self.arte = None
+        self.cache_arte = {}
+        self.sel = 0
+        self.opciones = ["Jugar", "Volver"]
+        self.acciones = ["jugar", "volver"]
+
+        self.f_titulo = pygame.font.SysFont(None, 92)
+        self.f_frase = pygame.font.SysFont(None, 30)
+        self.f_artista = pygame.font.SysFont(None, 60)
+        self.f_sub = pygame.font.SysFont(None, 30)
+        self.f_dato = pygame.font.SysFont(None, 30)
+        self.f_instr = pygame.font.SysFont(None, 26)
+        self.f_menu = pygame.font.SysFont(None, 50)
+        self.f_menu.set_bold(True)
+
+        self.fondo = crear_fondo(width, height)
+        x = (width - self.ANCHO) // 2
+        self.panel_info = pygame.Rect(x, 235, self.ANCHO, 420)
+        self.panel_menu = pygame.Rect(x, 672, self.ANCHO, 112)
+        self.filas = [pygame.Rect(x + 8, 680 + i * 48, self.ANCHO - 16, 46) for i in range(len(self.opciones))]
+
+    @property
+    def carpeta(self):
+        # ruta de la carpeta de la cancion (con el audio y el chart) o None si no se encontro
+        return self.info["carpeta"] if self.info else None
+
+    def abrir(self, song, origen):
+        self.song = song
+        self.origen = origen
+        self.sel = 0
+        self.info = canciones_info.get(normalizar(song["name"]))
+        self.datos = self.info["ini"] if self.info else {}
+        self.titulo = limpiar_texto(self.datos.get("name", song["name"]))
+        frase = limpiar_texto(self.datos.get("loading_phrase", ""))
+        self.frase = wrap_text(frase, self.f_frase, 1360, 3) if frase else []
+        self.arte = self.cargar_arte()
+
+    def cargar_arte(self):
+        if not self.info:
+            return None
+        ruta = self.info["carpeta"]
+        if ruta in self.cache_arte:
+            return self.cache_arte[ruta]
+        arte = None
+        for nombre in ("album.jpg", "album.png", "album.jpeg"):
+            archivo = os.path.join(ruta, nombre)
+            if os.path.isfile(archivo):
+                try:
+                    img = pygame.image.load(archivo).convert()
+                    escala = 180 / max(img.get_width(), img.get_height())
+                    arte = pygame.transform.smoothscale(
+                        img, (int(img.get_width() * escala), int(img.get_height() * escala)))
+                except pygame.error:
+                    arte = None
+                break
+        self.cache_arte[ruta] = arte
+        return arte
+
+    def handle_event(self, event):
+        """Devuelve "jugar", "volver" o None."""
+        if event.type == pygame.KEYDOWN:
+            if event.key in (pygame.K_DOWN, pygame.K_s):
+                self.sel = (self.sel + 1) % len(self.opciones)
+            elif event.key in (pygame.K_UP, pygame.K_w):
+                self.sel = (self.sel - 1) % len(self.opciones)
+            elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                return self.acciones[self.sel]
+            elif event.key == pygame.K_ESCAPE:
+                return "volver"
+        elif event.type == pygame.MOUSEMOTION:
+            for i, fila in enumerate(self.filas):
+                if fila.collidepoint(event.pos):
+                    self.sel = i
+        elif event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            for i, fila in enumerate(self.filas):
+                if fila.collidepoint(event.pos):
+                    self.sel = i
+                    return self.acciones[i]
+        return None
+
+    def texto_centrado(self, texto, fuente, color, cx, y):
+        surf = fuente.render(texto, True, color)
+        screen.blit(surf, (cx - surf.get_width() / 2, y))
+
+    def filas_info(self):
+        d = self.datos
+        filas = []
+        if d.get("album"):
+            filas.append(("Disco", limpiar_texto(d["album"])))
+        if d.get("year"):
+            anio = re.match(r"\d{4}", d["year"])
+            filas.append(("Año", anio.group(0) if anio else d["year"]))
+        if d.get("genre"):
+            filas.append(("Género", limpiar_texto(d["genre"])))
+        if d.get("charter"):
+            filas.append(("Charter", limpiar_texto(d["charter"])))
+        if d.get("song_length", "").isdigit():
+            seg = int(d["song_length"]) // 1000
+            filas.append(("Duración", str(seg // 60) + ":" + str(seg % 60).zfill(2)))
+        return filas
+
+    def update(self):
+        screen.blit(self.fondo, (0, 0))
+        cx = width / 2
+
+        # nombre de la cancion + frase del .ini (loading_phrase)
+        titulo = self.f_titulo.render(self.titulo, True, (255, 255, 255))
+        if titulo.get_width() > width - 80:
+            titulo = pygame.transform.smoothscale(
+                titulo, (width - 80, int(titulo.get_height() * (width - 80) / titulo.get_width())))
+        screen.blit(titulo, (cx - titulo.get_width() / 2, 18))
+        y = 100
+        for linea in self.frase:
+            self.texto_centrado(linea, self.f_frase, (235, 240, 245), cx, y)
+            y += 32
+
+        # panel con la informacion de la cancion
+        p = self.panel_info
+        pygame.draw.rect(screen, (18, 86, 128), p, border_radius=8)
+        pygame.draw.rect(screen, (26, 26, 26), (p.x, p.y, p.width, 70),
+                         border_top_left_radius=8, border_top_right_radius=8)
+        artista = limpiar_texto(self.datos.get("artist", "Artista desconocido"))
+        self.texto_centrado(recortar(artista, self.f_artista, p.width - 40), self.f_artista,
+                            (255, 255, 255), p.centerx, p.y + 35 - self.f_artista.get_height() / 2)
+        pygame.draw.rect(screen, (32, 32, 32), (p.x, p.y + 78, p.width, 40))
+        self.texto_centrado("Información de la canción", self.f_sub, (225, 225, 225),
+                            p.centerx, p.y + 98 - self.f_sub.get_height() / 2)
+
+        # caratula (album.jpg)
+        ax, ay = p.x + 24, p.y + 136
+        pygame.draw.rect(screen, (18, 40, 60), (ax, ay, 180, 180))
+        if self.arte:
+            screen.blit(self.arte, (ax + (180 - self.arte.get_width()) // 2,
+                                    ay + (180 - self.arte.get_height()) // 2))
+        pygame.draw.rect(screen, (230, 235, 240), (ax, ay, 180, 180), 2)
+
+        # datos del .ini
+        dx = ax + 180 + 28
+        filas = self.filas_info()
+        if not self.info:
+            self.texto_centrado("No se encontró la carpeta de la canción en Canciones/",
+                                self.f_dato, (255, 190, 120), dx + 250, ay + 70)
+        for i, (nombre, valor) in enumerate(filas):
+            fy = ay + 4 + i * 34
+            etiqueta = self.f_dato.render(nombre, True, (160, 205, 230))
+            screen.blit(etiqueta, (dx, fy))
+            valor = recortar(valor, self.f_dato, p.right - 24 - (dx + 120))
+            screen.blit(self.f_dato.render(valor, True, (255, 255, 255)), (dx + 120, fy))
+
+        # dificultad por instrumento (escala de 0 a 6, como en el song.ini)
+        pygame.draw.line(screen, (70, 140, 180), (p.x + 24, p.y + 336), (p.right - 24, p.y + 336), 1)
+        instrumentos = []
+        for nombre, clave in INSTRUMENTOS:
+            valor = self.datos.get(clave, "")
+            if valor.lstrip("-").isdigit() and int(valor) >= 0:
+                instrumentos.append((nombre, int(valor)))
+        if not instrumentos:
+            self.texto_centrado("Sin datos de dificultad en el song.ini", self.f_instr,
+                                (160, 205, 230), p.centerx, p.y + 372)
+        col = 130
+        x0 = p.centerx - len(instrumentos) * col / 2
+        for i, (nombre, nivel) in enumerate(instrumentos):
+            ccx = x0 + i * col + col / 2
+            self.texto_centrado(nombre, self.f_instr, (225, 235, 245), ccx, p.y + 348)
+            for k in range(6):
+                px = int(ccx - 2.5 * 17 + k * 17)
+                if k < nivel:
+                    pygame.draw.circle(screen, (255, 200, 40), (px, p.y + 384), 6)
+                else:
+                    pygame.draw.circle(screen, (120, 170, 200), (px, p.y + 384), 6, 2)
+
+        # menu: Jugar / Volver (la fila elegida se resalta como en Clone Hero)
+        pygame.draw.rect(screen, (18, 66, 100), self.panel_menu, border_radius=8)
+        for i, fila in enumerate(self.filas):
+            if i == self.sel:
+                pygame.draw.rect(screen, (208, 212, 215), fila, border_radius=6)
+                color = (10, 10, 10)
+            else:
+                color = (255, 255, 255)
+            txt = self.f_menu.render(self.opciones[i], True, color)
+            screen.blit(txt, (fila.centerx - txt.get_width() / 2, fila.centery - txt.get_height() / 2))
+
+
 menuassets_path = os.path.join(os.path.join(os.path.dirname(__file__), "Assets"), "Menu")
 game_state = "Menu_Principal"
 
@@ -424,17 +706,24 @@ refrescar_campaña()
 quick_songs = [{"name": s["name"], "difficulty": s["difficulty"], "artist": TIERS[s["tier"]][0]}
                for s in campaign_songs if not s.get("header")]
 
+for s in quick_songs:
+    if normalizar(s["name"]) not in canciones_info:
+        print("AVISO: no hay carpeta con song.ini para", s["name"], "dentro de Canciones/")
+
 quickity = song_menu("QUICKPLAY", quick_songs)
 campaignity = song_menu("CAMPAÑA", campaign_songs)
 
 # menus que tienen lista de canciones (para mandarles los eventos)
 song_menus = {"quickplay": quickity, "campaign": campaignity}
 
+detalle = song_detail()   # pantalla de informacion de la cancion
+
 # DICCIONARIO QUE ALMACENA TODOS LOS BOTONES (UTILIZAR ESTO POR FAVOR)
 menus = {"main":[Logo, Campaign, Quickplay, Option,Exit],
          "quickplay":[quickity,Exit],
          "campaign":[campaignity,Exit],
-         "options":[Music, volumen_slider, Gamepad, gamepad_check, Exit],}
+         "options":[Music, volumen_slider, Gamepad, gamepad_check, Exit],
+         "detalle":[detalle],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
     screen.fill("black")
@@ -446,14 +735,40 @@ while ejecucion:
         if event.type == pygame.QUIT:
             ejecucion = False
             continue
+
+        # mantener apretado Enter/Espacio repite el KEYDOWN: lo ignoramos hasta que se suelte,
+        # asi la pantalla nueva no reacciona sola al mismo Enter con el que se abrio
+        if event.type == pygame.KEYUP and event.key in (pygame.K_RETURN, pygame.K_SPACE):
+            enter_bloqueado = False
+        elif (event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE)
+              and enter_bloqueado):
+            continue
+
+        # pantalla de informacion de la cancion
+        if state == "detalle":
+            accion = detalle.handle_event(event)
+            if accion is not None:
+                enter_bloqueado = event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE)
+                if accion == "volver":
+                    state = detalle.origen        # vuelve a la lista de donde vino
+                elif accion == "jugar":
+                    cancion_elegida = detalle.song
+                    modo_juego = detalle.origen
+                    # TODO: aca arranca el juego con la cancion elegida. La carpeta con el
+                    # audio y el chart esta en detalle.carpeta. Cuando el jugador la termine
+                    # y modo_juego == "campaign":  completar_cancion(cancion_elegida)
+                    print("Jugar:", cancion_elegida["name"], "| modo:", modo_juego, "| carpeta:", detalle.carpeta)
+            continue
+
         if state == "options":
             volumen_slider.handle_event(event)
         if state in song_menus:
             elegida = song_menus[state].handle_event(event)
             if elegida is not None:
-                cancion_elegida = elegida
-                modo_juego = state
-                print("Cancion elegida:", cancion_elegida["name"], "| modo:", modo_juego)
+                detalle.abrir(elegida, state)    # abre la pantalla con la info del song.ini
+                state = "detalle"
+                enter_bloqueado = event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_SPACE)
+                continue
             # DEBUG (borrar despues): F1 marca como completada la cancion seleccionada
             elif (event.type == pygame.KEYDOWN and event.key == pygame.K_F1 and state == "campaign"
                   and not campaignity.songs[campaignity.selected].get("locked")):
