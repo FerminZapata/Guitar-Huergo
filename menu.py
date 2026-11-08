@@ -6,7 +6,17 @@ height = 900
 ejecucion = True
 
 pygame.init()
-screen = pygame.display.set_mode((width, height))
+
+# PANTALLA: el juego siempre se dibuja en 1500x900 y pygame (flag SCALED) lo escala al monitor
+# manteniendo la proporcion (con barras negras si hace falta). El mouse tambien se ajusta solo.
+# Si el monitor es mas chico que 1500x900 no entraria en ventana, asi que arranca en pantalla completa.
+try:
+    escritorio = pygame.display.get_desktop_sizes()[0]
+except (AttributeError, IndexError, pygame.error):
+    escritorio = (width, height)
+arranca_fullscreen = escritorio[0] < width or escritorio[1] < height
+screen = pygame.display.set_mode((width, height),
+                                 pygame.SCALED | (pygame.FULLSCREEN if arranca_fullscreen else 0))
 clock = pygame.time.Clock()
 
 # Si mantenes apretada una flecha, la lista sigue bajando/subiendo
@@ -27,9 +37,9 @@ enter_bloqueado = False   # ignora Enter/Espacio repetidos al cambiar de pantall
 
 # ---------------------------------------------------------------------------
 # OPCIONES: todo se guarda en este diccionario, el juego puede leerlo desde aca
-#   "volumen": 0.0 a 1.0        "gamepad": True / False
+#   "volumen": 0.0 a 1.0     "gamepad": True / False     "fullscreen": True / False
 # ---------------------------------------------------------------------------
-opciones = {"volumen": 0.5, "gamepad": False}
+opciones = {"volumen": 0.5, "gamepad": False, "fullscreen": arranca_fullscreen}
 
 def aplicar_volumen():
     # aplica el volumen a la musica que este sonando (si el mixer esta activo)
@@ -37,6 +47,15 @@ def aplicar_volumen():
         pygame.mixer.music.set_volume(opciones["volumen"])
 
 aplicar_volumen()
+
+pantalla_completa = arranca_fullscreen   # como esta la ventana ahora mismo
+
+def aplicar_pantalla_completa():
+    # pasa a pantalla completa / ventana segun opciones["fullscreen"] (tambien con la tecla F11)
+    global pantalla_completa
+    if pantalla_completa != opciones["fullscreen"]:
+        pygame.display.toggle_fullscreen()
+        pantalla_completa = opciones["fullscreen"]
 
 # DEFINICION DE LA CLASE BOTON
 class button:
@@ -170,6 +189,8 @@ class song_menu:
             else:
                 bg = lerp_color((50, 50, 50), (200, 110, 0), t)
                 txt_color = lerp_color((150, 150, 150), (255, 255, 255), t)
+                if song.get("secret"):      # la cancion secreta se ve en dorado
+                    txt_color = lerp_color((200, 170, 60), (255, 230, 90), t)
 
             pygame.draw.rect(screen, bg, rect, border_radius=12)
             if t > 0.5:
@@ -259,13 +280,16 @@ class volume_slider:
 
 # CASILLA CON TICK: el tick (tickactivado.png) aparece solo cuando la opcion esta activada
 class tick_box:
-    def __init__(self, pos, size, key, tick_img):
+    def __init__(self, pos, size, key, tick_img, al_cambiar=None):
         self.key = key
+        self.al_cambiar = al_cambiar    # funcion que se llama despues de cambiar el valor (opcional)
         self.rect = pygame.Rect(pos[0], pos[1], size, size)
         self.tick = pygame.transform.smoothscale(tick_img, (size - 20, size - 20))
 
     def toggle(self):
         opciones[self.key] = not opciones[self.key]
+        if self.al_cambiar:
+            self.al_cambiar()
 
     def update(self):
         hover = self.rect.collidepoint(pygame.mouse.get_pos())
@@ -359,8 +383,8 @@ def wrap_text(texto, fuente, ancho, max_lineas):
     return lineas
 
 # instrumentos que se muestran en la dificultad: (nombre, clave del song.ini)
-INSTRUMENTOS = [("Banda", "diff_band"), ("Guitarra", "diff_guitar"), ("Bajo", "diff_bass"),
-                ("Batería", "diff_drums"), ("Teclado", "diff_keys"), ("Voz", "diff_vocals")]
+# el juego solo tiene guitarra; si algun dia suman otro instrumento, agregarlo aca
+INSTRUMENTOS = [("Guitarra", "diff_guitar")]
 
 class song_detail:
     # OJO: la fuente por defecto de pygame recorta las MAYUSCULAS con tilde (Á, Ó...); usar minusculas con tilde
@@ -515,12 +539,15 @@ class song_detail:
         if not self.info:
             self.texto_centrado("No se encontró la carpeta de la canción en Canciones/",
                                 self.f_dato, (255, 190, 120), dx + 250, ay + 70)
-        for i, (nombre, valor) in enumerate(filas):
-            fy = ay + 4 + i * 34
-            etiqueta = self.f_dato.render(nombre, True, (160, 205, 230))
-            screen.blit(etiqueta, (dx, fy))
-            valor = recortar(valor, self.f_dato, p.right - 24 - (dx + 120))
-            screen.blit(self.f_dato.render(valor, True, (255, 255, 255)), (dx + 120, fy))
+        ancho_valor = p.right - 24 - (dx + 120)
+        filas = [(n, wrap_text(v, self.f_dato, ancho_valor, 2)) for n, v in filas]  # valores largos: 2 lineas
+        paso = 34 if sum(len(lineas) for _, lineas in filas) <= 5 else 29
+        fy = ay + 4
+        for nombre, lineas in filas:
+            screen.blit(self.f_dato.render(nombre, True, (160, 205, 230)), (dx, fy))
+            for linea in lineas:
+                screen.blit(self.f_dato.render(linea, True, (255, 255, 255)), (dx + 120, fy))
+                fy += paso
 
         # dificultad por instrumento (escala de 0 a 6, como en el song.ini)
         pygame.draw.line(screen, (70, 140, 180), (p.x + 24, p.y + 336), (p.right - 24, p.y + 336), 1)
@@ -643,10 +670,25 @@ for img in os.listdir(music_path):
 
 Music = button((width/5-normal.get_width()/5, 250), pressed, normal)
 
+fullscreen_path = os.path.join(menuassets_path,"Fullscreen")
+
+normal = None
+pressed = None
+
+for img in os.listdir(fullscreen_path):
+    if img[-5] == "P":
+        normal = pygame.image.load(os.path.join(fullscreen_path,img))
+    else:
+        pressed = pygame.image.load(os.path.join(fullscreen_path,img))
+
+Fullscreen = button((width/5-normal.get_width()/5, 375), pressed, normal)
+
 # controles de la pantalla de opciones
 tick_img = pygame.image.load(os.path.join(menuassets_path, "tickactivado.png")).convert_alpha()
 volumen_slider = volume_slider((760, 300), 300, "volumen")           # al lado del boton MUSICA
 gamepad_check = tick_box((1060, 500), 100, "gamepad", tick_img)     # al lado del boton MODO GAMEPAD
+fullscreen_check = tick_box((1060, 375), 100, "fullscreen", tick_img,
+                            aplicar_pantalla_completa)              # al lado del boton FULLSCREEN
 
 # ---------------------------------------------------------------------------
 # CAMPAÑA: tiers de canciones, cada uno mas dificil que el anterior
@@ -706,7 +748,44 @@ refrescar_campaña()
 quick_songs = [{"name": s["name"], "difficulty": s["difficulty"], "artist": TIERS[s["tier"]][0]}
                for s in campaign_songs if not s.get("header")]
 
-for s in quick_songs:
+# ---------------------------------------------------------------------------
+# CANCION SECRETA: no aparece en Quickplay hasta que se ingresa CODIGO_SECRETO
+# en el menu principal (teclas una detras de otra). Para cambiar el codigo, editar la lista.
+# Ahora es: arriba, arriba, abajo, abajo, izquierda, derecha, izquierda, derecha, B, A
+# ---------------------------------------------------------------------------
+CODIGO_SECRETO = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN,
+                  pygame.K_LEFT, pygame.K_RIGHT, pygame.K_LEFT, pygame.K_RIGHT,
+                  pygame.K_b, pygame.K_a]
+# "name" tiene que coincidir con el name del song.ini de su carpeta en Canciones/
+cancion_secreta = {"name": "Mechanix", "difficulty": 5, "artist": "SECRETA", "secret": True}
+secreta_desbloqueada = False
+entradas_secretas = []          # ultimas teclas apretadas en el menu principal
+
+aviso_texto = ""                # cartelito que se muestra unos segundos abajo de todo
+aviso_hasta = 0
+f_aviso = pygame.font.SysFont(None, 38)
+
+def desbloquear_cancion_secreta():
+    global secreta_desbloqueada, aviso_texto, aviso_hasta
+    if secreta_desbloqueada:
+        aviso_texto = "La canción secreta ya está desbloqueada en Quickplay"
+    else:
+        secreta_desbloqueada = True
+        quick_songs.append(cancion_secreta)   # quickity usa esta misma lista, asi que aparece sola
+        aviso_texto = "¡Canción secreta desbloqueada: " + cancion_secreta["name"] + "!"
+    aviso_hasta = pygame.time.get_ticks() + 4000
+
+def dibujar_aviso():
+    if pygame.time.get_ticks() >= aviso_hasta:
+        return
+    txt = f_aviso.render(aviso_texto, True, (255, 220, 80))
+    caja = pygame.Rect(width // 2 - (txt.get_width() + 50) // 2, 826, txt.get_width() + 50, txt.get_height() + 24)
+    pygame.draw.rect(screen, (30, 30, 30), caja, border_radius=10)
+    pygame.draw.rect(screen, (255, 220, 80), caja, 3, border_radius=10)
+    screen.blit(txt, (caja.x + 25, caja.y + 12))
+
+
+for s in quick_songs + [cancion_secreta]:
     if normalizar(s["name"]) not in canciones_info:
         print("AVISO: no hay carpeta con song.ini para", s["name"], "dentro de Canciones/")
 
@@ -722,7 +801,7 @@ detalle = song_detail()   # pantalla de informacion de la cancion
 menus = {"main":[Logo, Campaign, Quickplay, Option,Exit],
          "quickplay":[quickity,Exit],
          "campaign":[campaignity,Exit],
-         "options":[Music, volumen_slider, Gamepad, gamepad_check, Exit],
+         "options":[Music, volumen_slider, Fullscreen, fullscreen_check, Gamepad, gamepad_check, Exit],
          "detalle":[detalle],}
 
 def upt_assets(): # FUNCION QUE REFRESCA LAS IMAGENES DE LA VENTANA
@@ -735,6 +814,19 @@ while ejecucion:
         if event.type == pygame.QUIT:
             ejecucion = False
             continue
+
+        # F11: pantalla completa (tambien se puede activar desde Opciones)
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_F11:
+            fullscreen_check.toggle()
+            continue
+
+        # codigo secreto (solo en el menu principal): desbloquea una cancion en Quickplay
+        if state == "main" and event.type == pygame.KEYDOWN:
+            entradas_secretas.append(event.key)
+            del entradas_secretas[:-len(CODIGO_SECRETO)]    # guarda solo las ultimas teclas
+            if entradas_secretas == CODIGO_SECRETO:
+                entradas_secretas.clear()
+                desbloquear_cancion_secreta()
 
         # mantener apretado Enter/Espacio repite el KEYDOWN: lo ignoramos hasta que se suelte,
         # asi la pantalla nueva no reacciona sola al mismo Enter con el que se abrio
@@ -794,7 +886,11 @@ while ejecucion:
                 elif state == "options" and (Gamepad.rect.collidepoint(event.pos)
                                              or gamepad_check.rect.collidepoint(event.pos)):
                     gamepad_check.toggle()   # click en el boton o en la casilla
+                elif state == "options" and (Fullscreen.rect.collidepoint(event.pos)
+                                             or fullscreen_check.rect.collidepoint(event.pos)):
+                    fullscreen_check.toggle()
     upt_assets()
+    dibujar_aviso()
     pygame.display.flip()
     clock.tick(60)
 pygame.quit()
