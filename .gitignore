@@ -1,2 +1,4 @@
 venv/
 *.pyc
+requirements.txt
+notes.chart

@@ -304,30 +304,50 @@ def check_pressed(dicc):
             temp = True
     return temp
 
+polla = "Expert"
+
 chart_path = LectorDeCancionesRemake.main()
 
-rdblFile = LectorDeCancionesRemake.leerChart(chart_path,"expert")
+rdblFile = LectorDeCancionesRemake.leerChart(chart_path,polla)
 
 time_map = LectorDeCancionesRemake.parse_BPM(rdblFile)
 
-parse = LectorDeCancionesRemake.parseNote(rdblFile,"Expert", time_map[0], time_map[1])
+parse = LectorDeCancionesRemake.parseNote(rdblFile, polla, time_map[0], time_map[1])
 
 parse = parse[list(parse.keys())[0]]
 
 def chart(time,notenum,data):
-    if pygame.time.get_ticks() - time >= data[notenum]["start_ms"]:
-        if data[notenum]["start_ms"] == data[notenum+1]["start_ms"] and (data[notenum+1]["lane"] == "5" or data[notenum+1]["lane"] == "6"):
-            if data[notenum+1]["lane"] == "5":
-                return notenum + 2, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),1)
-            elif data[notenum+1]["lane"] == "6":
-                return notenum + 2, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),2)
-            else:
+    try:
+        if pygame.time.get_ticks() - time >= data[notenum]["start_ms"]:
+            if data[notenum]["start_ms"] == data[notenum+1]["start_ms"] and (data[notenum+1]["type"] != "S" and data[notenum+1]["type"] != "S"):
+                amount = 1
+                special = 0
+                for i in range(1,10):
+                    try:
+                        if data[notenum]["start_ms"] == data[notenum + i]["start_ms"]:
+                            if data[notenum + i]["lane"] == "5":
+                                special = 1
+                            elif data[notenum + i]["lane"] == "6":
+                                special = 2
+                            else:
+                                amount += 1
+                    except IndexError:
+                        continue
+                notelist = []
+                for i in range(amount):
+                    if data[notenum+i]["type"] != "S":
+                        notelist.append(Note_Class(data[notenum+i]["type"],int(data[notenum+i]["lane"]),int(data[notenum+i]["duration_ms"]),special))
+                if special != 0:
+                    return notenum + amount+1, notelist
+                else:
+                    return notenum + amount, notelist
+            elif data[notenum]["type"] != "S":
                 return notenum + 1, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),0)
-        elif data[notenum]["type"] != "S":
-            return notenum + 1, Note_Class(data[notenum]["type"],int(data[notenum]["lane"]),int(data[notenum]["duration_ms"]),0)
-        else:
-            return notenum + 1, None
-    return notenum, None
+            else:
+                return notenum + 1, None
+        return notenum, None
+    except IndexError:
+        return notenum, None
 
 drawable_notes = [] # Lista que almacena las notas actuales
 
@@ -403,8 +423,12 @@ while True:
         StartTime = pygame.time.get_ticks()
     elif pygame.time.get_ticks() >= 11000:
         NoteNum, NewNote = chart(StartTime,NoteNum,parse)
-        if NewNote != None:
-            drawable_notes.append(NewNote)
+        try:
+            for note in NewNote:
+                drawable_notes.append(note)
+        except TypeError:
+            if NewNote != None:
+                drawable_notes.append(NewNote)
 
     draw_background()
 
