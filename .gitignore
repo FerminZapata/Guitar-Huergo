@@ -1,5 +1,2 @@
-venv
-temp.txt
-__pycache__
-notes.chart
-requirements.txt
+venv/
+*.pyc
