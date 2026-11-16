@@ -273,15 +273,57 @@ def parseNote(chart, diff, time_map, resolution):#funcion que parsea las notas
         nota = {'start_ms': round(start_ms), #finalmente agrega los datos en ms a la lista de notas parseadas
                 'duration_ms': round(end_ms - start_ms),   #resta el final con el inicio para calcular cuanto dura
                 'lane': y['lane'],
-                'type': y['type']}
+                'type': y['type'],
+                'tick': y['tick']}                  #el tick original (sirve para calcular HOPOs y frases Star)
         if y['type'] == 'N':
             mod = modificadores.get(y['tick'], {'forced': None, 'tap': False})
             nota['forced'] = mod['forced']      # None / 'toggle' (.chart) / 'hopo' o 'strum' (.mid)
             nota['tap'] = mod['tap']
         parsed_notes[seccion].append(nota)
+
+    marcarStarPower(parsed_notes[seccion], raw_note_chart)
+    marcarHopos(parsed_notes[seccion], resolution)
     return parsed_notes
 
-def cargarCancion(path, diff="expert"):     #funcion principal: elige el lector segun la extension y devuelve las notas parseadas
+def marcarStarPower(notas, raw_note_chart):
+    #agrega 'star_id' a cada nota: el numero de la frase Star Power en la que esta (o None si no esta en ninguna)
+    frases = sorted((y['tick'], y['tick'] + max(y['sustain'], 1))      #(inicio, fin) de cada frase, en ticks
+                    for y in raw_note_chart if y['type'] == 'S' and y['lane'] == '2')
+    inicios = [f[0] for f in frases]
+    for n in notas:
+        if n['type'] != 'N':
+            continue
+        i = bisect_right(inicios, n['tick']) - 1
+        n['star_id'] = i if i >= 0 and n['tick'] < frases[i][1] else None
+
+def marcarHopos(notas, resolution):
+    #agrega 'hopo' (True/False) a cada nota. Regla del Guitar Hero: una nota sola es HOPO si esta muy cerca de la anterior
+    #y NO es el mismo traste (ni uno que ya estaba en el acorde anterior). Despues se aplican los 'forzados' del chart.
+    porTick = {}
+    for n in notas:
+        if n['type'] == 'N':
+            porTick.setdefault(n['tick'], []).append(n)
+    umbral = resolution // 3 + 1                    #65 ticks cuando la resolucion es 192
+    tickPrevio, carrilesPrevios = None, set()
+    for tick in sorted(porTick):
+        grupo = porTick[tick]
+        carriles = {n['lane'] for n in grupo}
+        natural = (tickPrevio is not None and len(carriles) == 1
+                   and tick - tickPrevio <= umbral and not (carriles & carrilesPrevios))
+        forzado = grupo[0]['forced']
+        if forzado == 'toggle':                     #.chart: forzar invierte lo natural
+            hopo = not natural
+        elif forzado == 'hopo':                     #.mid: forzar hopo / forzar strum
+            hopo = True
+        elif forzado == 'strum':
+            hopo = False
+        else:
+            hopo = natural
+        for n in grupo:
+            n['hopo'] = hopo
+        tickPrevio, carrilesPrevios = tick, carriles
+
+def cargarCancionCompleta(path, diff="expert"):     #elige el lector segun la extension y devuelve (notas parseadas, time_map, resolution)
     extension = os.path.splitext(path)[1].lower()
     if extension == ".chart":
         rdblFile = leerChart(path, diff)
@@ -293,7 +335,11 @@ def cargarCancion(path, diff="expert"):     #funcion principal: elige el lector 
     if rdblFile is None:
         return
     time_map, resolution = parse_BPM(rdblFile)
-    return parseNote(rdblFile, diff, time_map, resolution)
+    return parseNote(rdblFile, diff, time_map, resolution), time_map, resolution
+
+def cargarCancion(path, diff="expert"):     #igual que la anterior pero devuelve solo las notas parseadas
+    resultado = cargarCancionCompleta(path, diff)
+    return resultado[0] if resultado else None
 
 
 if __name__ == "__main__":
@@ -304,4 +350,4 @@ if __name__ == "__main__":
         parse = cargarCancion(c['notas'], "expert")
         if parse:
             notas = [n for n in parse["ExpertSingle"] if n['type'] == 'N']
-            print(f"[{c['formato']:5}] {c['nombre']}  ->  {len(notas)} notas (expert)")
+            print(f"[{c['formato']:5}] {c['nombre']}  ->  {len(notas)} notas (expert)")

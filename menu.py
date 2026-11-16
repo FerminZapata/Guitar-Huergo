@@ -1,4 +1,4 @@
-import pygame, os, re, math
+import pygame, os, re, math, GuitarHuergo
 
 width = 1500
 height = 900
@@ -29,7 +29,7 @@ nivel_elegido = None
 modo_juego = None
 enter_bloqueado = False
 
-opciones = {"volumen": 0.5, "gamepad": False, "fullscreen": arranca_fullscreen}
+opciones = {"volumen": 0.5, "gamepad": True, "fullscreen": arranca_fullscreen}
 
 def aplicar_volumen():
     if pygame.mixer.get_init():
@@ -860,6 +860,11 @@ def dibujar_aviso():
     pygame.draw.rect(screen, (255, 220, 80), caja, 3, border_radius=10)
     screen.blit(txt, (caja.x + 25, caja.y + 12))
 
+def mostrar_aviso(texto, ms=4000):
+    global aviso_texto, aviso_hasta
+    aviso_texto = texto
+    aviso_hasta = pygame.time.get_ticks() + ms
+
 
 for s in quick_songs + [cancion_secreta]:
     if normalizar(s["name"]) not in canciones_info:
@@ -871,6 +876,31 @@ campaignity = song_menu("CAMPAÑA", campaign_songs)
 song_menus = {"quickplay": quickity, "campaign": campaignity}
 
 detalle = song_detail()
+
+def jugar_cancion():
+    # Lanza GuitarHuergo con la cancion y la dificultad que se eligieron en la pantalla de detalle
+    global ejecucion, enter_bloqueado
+    if not detalle.carpeta:
+        mostrar_aviso("No se encontró la carpeta de la canción en Canciones/")
+        return
+    if detalle.nivel is None:
+        mostrar_aviso("La canción no tiene notas para jugar")
+        return
+    resultado = GuitarHuergo.jugar(detalle.carpeta, detalle.nivel,
+                                   gamepad=opciones["gamepad"], volumen=opciones["volumen"])
+    pygame.key.set_repeat(400, 70)      # el juego apaga la repeticion de teclas, el menu la necesita
+    pygame.event.clear()
+    enter_bloqueado = False
+    if resultado is not None:           # lo que se cambio en Pausa > Opciones se queda en las opciones del menu
+        opciones["volumen"] = resultado["volumen"]
+        opciones["gamepad"] = resultado["gamepad"]
+    aplicar_volumen()
+    if resultado is None:
+        mostrar_aviso("No se pudo cargar la canción (mirá la consola)")
+    elif resultado["cerrar"]:
+        ejecucion = False
+    elif resultado["terminada"] and detalle.origen == "campaign":
+        completar_cancion(detalle.song)     # termino la cancion en modo campaña: cuenta como completada
 
 menus = {"main":[Logo, Campaign, Quickplay, Option,Exit],
          "quickplay":[quickity,Exit],
@@ -917,6 +947,7 @@ while ejecucion:
                     modo_juego = detalle.origen
                     nivel_elegido = detalle.nivel
                     print("Jugar:", cancion_elegida["name"], "| modo:", modo_juego, "| dificultad:", nivel_elegido, "| carpeta:", detalle.carpeta)
+                    jugar_cancion()
             continue
 
         if state == "options":
