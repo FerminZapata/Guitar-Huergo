@@ -827,8 +827,31 @@ def completar_cancion(song):
 
 refrescar_campaña()
 
+# Hacemos una lista con los nombres normalizados de la campaña (más la secreta) 
+# para no agregarlas dos veces ni arruinar el secreto.
+nombres_excluidos = {normalizar(s["name"]) for s in campaign_songs if not s.get("header")}
+nombres_excluidos.add(normalizar("Mechanix"))
+
+# 1. Agregamos las canciones por defecto de la campaña
 quick_songs = [{"name": s["name"], "difficulty": s["difficulty"], "artist": TIERS[s["tier"]][0]}
                for s in campaign_songs if not s.get("header")]
+
+# 2. Agregamos cualquier canción extra detectada en la carpeta
+for norm_name, data in canciones_info.items():
+    if norm_name not in nombres_excluidos:
+        ini = data["ini"]
+        nombre = ini.get("name", "Desconocida")
+        artista = ini.get("artist", "Artista desconocido")
+        
+        # Lee la dificultad del ini para poner los puntitos en el menú (entre 0 y 5)
+        diff_val = ini.get("diff_guitar", "1")
+        dificultad = int(diff_val) if diff_val.lstrip("-").isdigit() else 1
+        
+        quick_songs.append({
+            "name": nombre, 
+            "difficulty": min(max(dificultad, 0), 5), 
+            "artist": artista
+        })
 
 CODIGO_SECRETO = [pygame.K_UP, pygame.K_UP, pygame.K_DOWN, pygame.K_DOWN,
                   pygame.K_LEFT, pygame.K_RIGHT, pygame.K_LEFT, pygame.K_RIGHT,

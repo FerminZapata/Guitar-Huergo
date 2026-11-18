@@ -39,7 +39,7 @@ CUENTA_REGRESIVA_PAUSA = 3  # segundos de cuenta regresiva al volver de la pausa
 PRE_ROLL_MS = 3000          # tiempo de espera antes de que arranque la musica
 OFFSET_AUDIO_MS = 0         # calibracion (ms): si la musica suena ADELANTADA respecto a las notas ponele un valor positivo, si suena atrasada uno negativo
 VENTANA_MIN = 650           # una nota se puede tocar cuando su centro esta entre estas dos alturas
-VENTANA_MAX = 750
+VENTANA_MAX = 800
 
 # --- Star notes / Hero Power ----------------------------------------------
 TECLAS_STAR_POWER = (pygame.K_LSHIFT, pygame.K_RSHIFT)     # teclas para activar el Hero Power
@@ -327,7 +327,7 @@ def cargar_assets():
 #  NOTAS
 # ===========================================================================
 class long:
-    def __init__(self, surf, pos, span,TYPE,row, bpm_nota=None):
+    def __init__(self, surf, pos, span, TYPE, row, bpm_nota=None):
         self.spd = (bpm if bpm_nota is None else bpm_nota)/60
         if row != 7:
             self.add = 0.1
@@ -340,22 +340,34 @@ class long:
         self.lcut = 20
         self.cuty = 0
 
-    def move(self,missed):
+    def move(self, missed, pressed):
         self.start = ahora_juego()
+        
         if self.start <= self.end:
             if self.lcut <= 430:
                 self.lcut += 8*self.spd
         elif self.start >= self.end:
             self.cuty += 8*self.spd
-            self.pos = (self.pos[0],self.pos[1]+8*self.spd)
+            self.pos = (self.pos[0], self.pos[1]+8*self.spd)
             if self.pos[1] + self.lcut <= 800:
                 self.lcut += 8*self.add
-            elif not missed and tecla_sostenida(self.type):
-                self.lcut -= 8*self.spd
-        self.add += 0.005*self.spd
-        self.spd += 0.005
-        cut = pygame.Rect(0,self.cuty,self.surf.get_width(),self.lcut)
-        window.blit(self.surf,self.pos,cut)
+                
+        # 1. Frenar la aceleración si ya acertamos la nota o la dejamos pasar
+        if not pressed and not missed:
+            self.add += 0.005*self.spd
+            self.spd += 0.005
+
+        # 2. Cortar la nota para que no pase la línea de los altavoces
+        if pressed and not missed and tecla_sostenida(self.type):
+            limite_y = 800  # Altura central de los altavoces
+            fondo_nota = self.pos[1] + self.lcut
+            if fondo_nota > limite_y:
+                self.lcut -= (fondo_nota - limite_y)
+
+        # 3. Dibujarla solo si todavía queda parte visible (evita errores de Pygame)
+        if self.lcut > 0:
+            cut = pygame.Rect(0, int(self.cuty), self.surf.get_width(), int(self.lcut))
+            window.blit(self.surf, self.pos, cut)
 
 class Note_Class:
     def __init__(self, note, row, span, special, star_id=None, star=False, bpm_nota=None, fin_ms=None):
@@ -414,7 +426,7 @@ class Note_Class:
             note = pygame.transform.scale(base, (int(base.get_width()*self.add), int(base.get_height()*self.add)))
             self.middle = note.get_height() / 2
             if self.span != 0:
-                self.long.move(self.missed)
+                self.long.move(self.missed, self.pressed)
             if not self.pressed and not self.missed:
                 if self.row != 7:
                     self.pos = (self.pos[0]+posChangeList[self.row]*self.spd,self.pos[1]+8*self.spd)
@@ -766,25 +778,36 @@ def puntuar_sustains(t, bpm_cancion):
 
 def procesar_golpes():
     global space_pressed
+    
+    # 1. Recolectar todas las notas candidatas a ser golpeadas en este frame
+    notas_a_golpear = []
     for press in n_pressed:
-        if n_pressed[press] == "normal":
-            for n in drawable_notes[:]:
-                if n.pressed or n.fallada or n.type != press:
-                    continue
-                if n.v_min <= n.pos[1] + n.middle <= n.v_max:
-                    golpear(n)
-                    n_pressed["Open"] = "none"
-                    space_pressed = False
-            n_pressed[press] = "none"
-        elif n_pressed[press] == "light":
-            for n in drawable_notes[:]:
-                if n.pressed or n.fallada or n.type != press or n.special == 0:
-                    continue
-                if n.v_min <= n.pos[1] + n.middle <= n.v_max:
-                    golpear(n)
-                    n_pressed["Open"] = "none"
-                    space_pressed = False
-            n_pressed[press] = "none"
+        estado = n_pressed[press]
+        if estado == "normal":
+            for n in drawable_notes:
+                if not n.pressed and not n.fallada and n.type == press:
+                    if n.v_min <= n.pos[1] + n.middle <= n.v_max:
+                        notas_a_golpear.append(n)
+        elif estado == "light":
+            for n in drawable_notes:
+                if not n.pressed and not n.fallada and n.type == press and n.special != 0:
+                    if n.v_min <= n.pos[1] + n.middle <= n.v_max:
+                        notas_a_golpear.append(n)
+
+    # 2. Si hay notas para golpear, filtrar y golpear solo las del mismo start_ms
+    if notas_a_golpear:
+        # El start_ms de una nota es exactamente (fin_ms - span)
+        primer_start_ms = min(n.fin_ms - n.span for n in notas_a_golpear)
+        
+        for n in notas_a_golpear:
+            if n.fin_ms - n.span == primer_start_ms:
+                golpear(n)
+                n_pressed["Open"] = "none"
+                space_pressed = False
+
+    # 3. Limpiar los inputs
+    for press in n_pressed:
+        n_pressed[press] = "none"
 
 def actualizar_notas():
     for n in drawable_notes[:]:
@@ -832,7 +855,8 @@ def pausar(clock, audio):
 
     def filas_de(pantalla):
         if pantalla == "pausa":
-            return "PAUSA", ["Continuar", "Opciones", "Salir al menú"]
+            # Añadimos "Reiniciar Canción" como segunda opción
+            return "PAUSA", ["Continuar", "Reiniciar Canción", "Opciones", "Salir al menú"]
         return "OPCIONES", ["Volumen: " + str(round(volumen_actual * 100)) + "%",
                             "Velocidad de notas: " + str(round(FACTOR_BPM * 100)) + "%",
                             "Modo gamepad: " + ("Sí" if gamepad_mode else "No"),
@@ -871,6 +895,8 @@ def pausar(clock, audio):
                         if sel == 0:
                             decision = "continuar"
                         elif sel == 1:
+                            decision = "reiniciar" # <- NUEVA DECISIÓN
+                        elif sel == 2:
                             pantalla, sel = "opciones", 0
                         else:
                             decision = "salir"
@@ -938,11 +964,6 @@ def pantalla_resultados(resultado, clock):
 
 
 def jugar(carpeta, nivel="expert", gamepad=False, volumen=0.5, con_audio=True):
-    # Juega UNA cancion y devuelve un diccionario con el resultado (o None si no se pudo cargar):
-    #   {"terminada": bool,   True si llego hasta el final, False si salio desde la pausa (ESC > Salir al menu)
-    #    "cerrar": bool,      True si cerraron la ventana (el menu deberia cerrarse tambien)
-    #    "puntaje", "aciertos", "fallos", "precision", "mejor_racha",
-    #    "volumen", "gamepad"}  (por si se cambiaron en Pausa > Opciones)
     global window, gamepad_mode, space_pressed, current_fret, o_time, bpm, pausa_total, volumen_actual
     global tiempo_cancion, fondo_cancion, ultimo_fallo_ms, ultimo_sonido_fallo
     global drawable_notes, frets, marcador, hero, toast_hasta
@@ -955,185 +976,200 @@ def jugar(carpeta, nivel="expert", gamepad=False, volumen=0.5, con_audio=True):
     # --- cargar la cancion ---
     ruta_notas = LectorDeCancionesMIDI.buscarArchivoNotas(carpeta)
     if ruta_notas is None:
-        print("No hay notes.chart ni notes.mid en", carpeta)
         return None
     cargada = LectorDeCancionesMIDI.cargarCancionCompleta(ruta_notas, nivel)
     if cargada is None:
-        print("No se pudo cargar", ruta_notas, "en dificultad", nivel)
         return None
     parse, time_map, _ = cargada
     eventos = preparar_eventos(parse[list(parse.keys())[0]])
     if not eventos:
-        print("La cancion no tiene notas en dificultad", nivel)
         return None
 
     tiempos_bpm = [e["MS"] for e in time_map]
-    def bpm_en(ms):                 # BPM reales de la cancion en ese momento (los usa el Hero Power para vaciar la barra)
+    def bpm_en(ms):                 
         return time_map[max(0, bisect.bisect_right(tiempos_bpm, ms) - 1)]["bpm"]
 
-    # --- velocidad de las notas segun el BPM del archivo ---
-    # Cada evento (nota o acorde) sale con la velocidad del BPM que tiene la cancion cuando LLEGA a la ventana de golpe,
-    # y aparece justo el tiempo que tarda en llegar a esa velocidad. Asi sigue sincronizado aunque el tempo cambie.
     for ev in eventos:
-        ev['bpm_real'] = bpm_en(ev['ms'])           # BPM de la cancion cuando llega esta nota (sin factor ni limites)
+        ev['bpm_real'] = bpm_en(ev['ms'])           
         ev['bpm'] = bpm_visual(ev['bpm_real'])
         ev['spawn_ms'] = ev['ms'] - calcular_viaje_ms(ev['bpm'], any(n['lane'] == 7 for n in ev['notas']))
     orden_spawn = sorted(range(len(eventos)), key=lambda i: eventos[i]['spawn_ms'])
 
-    # --- estado de la partida ---
     notas_por_frase = {}
     for ev in eventos:
         for nota in ev['notas']:
             if nota['star_id'] is not None:
                 notas_por_frase[nota['star_id']] = notas_por_frase.get(nota['star_id'], 0) + 1
-    marcador = Marcador()
-    hero = HeroPower(notas_por_frase)
-    drawable_notes = []
-    frets = []
-    gamepad_mode = gamepad
-    space_pressed = False
-    current_fret = 2
-    toast_hasta = 0
-    pausa_total = 0
-    volumen_actual = volumen
-    tiempo_cancion = 0
-    ultimo_fallo_ms = -10000
-    ultimo_sonido_fallo = None
-    fondo_cancion = preparar_fondo(carpeta)         # None si la cancion no trae background.*
-    bpm = bpm_visual(bpm_en(0))
-    for d in (n_pressed, n_held):
-        for k in d:
-            d[k] = "none"
 
-    clock = pygame.time.Clock()
-    pygame.key.set_repeat()         # el menu deja la repeticion de teclas activada: aca no sirve (volveria a "rasgar" sola)
-    audio = preparar_audio(carpeta, volumen) if con_audio else None
+    # ENVOLVEMOS EL JUEGO EN UN LOOP PARA PODER REINICIAR
+    while True:
+        # --- estado de la partida ---
+        marcador = Marcador()
+        hero = HeroPower(notas_por_frase)
+        drawable_notes = []
+        frets = []
+        gamepad_mode = gamepad
+        space_pressed = False
+        current_fret = 2
+        toast_hasta = 0
+        pausa_total = 0
+        volumen_actual = volumen
+        tiempo_cancion = 0
+        ultimo_fallo_ms = -10000
+        ultimo_sonido_fallo = None
+        fondo_cancion = preparar_fondo(carpeta)         
+        bpm = bpm_visual(bpm_en(0))
+        for d in (n_pressed, n_held):
+            for k in d:
+                d[k] = "none"
 
-    t0 = pygame.time.get_ticks()
-    o_time = t0
-    NoteNum = 0
-    audio_sonando = False
-    fin_hasta = None
-    motivo = None                   # "salir" (ESC), "cerrar" (cerraron la ventana) o "fin" (se termino la cancion)
+        clock = pygame.time.Clock()
+        pygame.key.set_repeat()         
+        audio = preparar_audio(carpeta, volumen) if con_audio else None
 
-    try:
-        while motivo is None:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    motivo = "cerrar"
-                elif event.type == pygame.KEYUP:
-                    keys = pygame.key.get_pressed()
-                    for key in keys_dict:
-                        if not keys[key]:
-                            n_pressed[keys_dict[key]] = "none"
-                            n_held[keys_dict[key]] = "none"
-                    if event.key == pygame.K_SPACE:
-                        space_pressed = False
-                elif event.type == pygame.KEYDOWN:
-                    if event.key == pygame.K_ESCAPE:
-                        factor_antes = FACTOR_BPM
-                        motivo = pausar(clock, audio)
-                        if motivo is None:          # volvio de la pausa
-                            if FACTOR_BPM != factor_antes:      # cambiaron la velocidad: se recalculan las notas que faltan
-                                aplicar_velocidad(eventos, orden_spawn, NoteNum, ahora_juego() - t0 - PRE_ROLL_MS)
-                            # las teclas pudieron soltarse mientras tanto
-                            keys = pygame.key.get_pressed()
-                            for key in keys_dict:
-                                n_pressed[keys_dict[key]] = "none"
-                                if not keys[key]:
-                                    n_held[keys_dict[key]] = "none"
-                            if not keys[pygame.K_SPACE]:
-                                space_pressed = False
-                    elif event.key in TECLAS_STAR_POWER:
-                        hero.activar()
-                    elif event.key == pygame.K_SPACE:
+        t0 = pygame.time.get_ticks()
+        o_time = t0
+        NoteNum = 0
+        audio_sonando = False
+        fin_hasta = None
+        motivo = None                   
+
+        try:
+            while motivo is None:
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        motivo = "cerrar"
+                    elif event.type == pygame.KEYUP:
                         keys = pygame.key.get_pressed()
-                        space_pressed = False
+                        for key in keys_dict:
+                            if not keys[key]:
+                                n_pressed[keys_dict[key]] = "none"
+                                n_held[keys_dict[key]] = "none"
+                        if event.key == pygame.K_SPACE:
+                            space_pressed = False
+                    elif event.type == pygame.KEYDOWN:
+                        if event.key == pygame.K_ESCAPE:
+                            factor_antes = FACTOR_BPM
+                            motivo = pausar(clock, audio)
+                            
+                            if motivo == "reiniciar":
+                                break # Rompe el for loop
+                                
+                            if motivo is None:          
+                                if FACTOR_BPM != factor_antes:      
+                                    aplicar_velocidad(eventos, orden_spawn, NoteNum, ahora_juego() - t0 - PRE_ROLL_MS)
+                                keys = pygame.key.get_pressed()
+                                for key in keys_dict:
+                                    n_pressed[keys_dict[key]] = "none"
+                                    if not keys[key]:
+                                        n_held[keys_dict[key]] = "none"
+                                if not keys[pygame.K_SPACE]:
+                                    space_pressed = False
+                        elif event.key in TECLAS_STAR_POWER:
+                            hero.activar()
+                        elif event.key == pygame.K_SPACE:
+                            keys = pygame.key.get_pressed()
+                            space_pressed = False
+                            for code, name in keys_dict.items():
+                                if name != pygame.K_SPACE and keys[code]:
+                                    n_pressed[name] = "normal"
+                                    n_held[name] = "normal"
+                                    space_pressed = True
+                                if not space_pressed:
+                                    n_pressed["Open"] = "normal"
+                                    n_held["Open"] = "normal"
+                        elif event.key in keys_dict:
+                            pressed = keys_dict[event.key]
+                            keys = pygame.key.get_pressed()
+                            
+                            # AQUÍ OCURRE LA MAGIA PARA ACORDES (Toma la nueva tecla Y las mantenidas)
+                            if space_pressed or gamepad_mode:
+                                for code, name in keys_dict.items():
+                                    if name != pygame.K_SPACE and keys[code]:
+                                        n_pressed[name] = "normal"
+                                        n_held[name] = "normal"
+                                n_pressed[pressed] = "normal"
+                                n_held[pressed] = "normal"
+                            else:
+                                for code, name in keys_dict.items():
+                                    if name != pygame.K_SPACE and keys[code]:
+                                        n_pressed[name] = "light"
+                                        n_held[name] = "light"
+                                n_pressed[pressed] = "light"
+                                n_held[pressed] = "light"
+                        if event.key == pygame.K_p:
+                            gamepad_mode = not gamepad_mode
+                if motivo is not None:
+                    break
 
-                        for code, name in keys_dict.items():
-                            if name != pygame.K_SPACE and keys[code]:
-                                n_pressed[name] = "normal"
-                                n_held[name] = "normal"
-                                space_pressed = True
-                            if not space_pressed:
-                                n_pressed["Open"] = "normal"
-                                n_held["Open"] = "normal"
-                    elif event.key in keys_dict:
-                        pressed = keys_dict[event.key]
-                        if space_pressed or gamepad_mode:
-                            n_pressed[pressed] = "normal"
-                            n_held[pressed] = "normal"
-                        else:
-                            n_pressed[pressed] = "light"
-                            n_held[pressed] = "light"
-                    if event.key == pygame.K_p:
-                        gamepad_mode = not gamepad_mode
-            if motivo is not None:
-                break
+                ahora = ahora_juego()                   # reloj de la partida (no avanza durante la pausa)
+                t = ahora - t0 - PRE_ROLL_MS            # ms de cancion (negativo mientras espera que   arranque la musica)
+                tiempo_cancion = t
+                bpm = bpm_visual(bpm_en(max(t, 0)))     # el bpm sigue al archivo de la cancion (lo usan    los trastes y las notas nuevas)
 
-            ahora = ahora_juego()                   # reloj de la partida (no avanza durante la pausa)
-            t = ahora - t0 - PRE_ROLL_MS            # ms de cancion (negativo mientras espera que arranque la musica)
-            tiempo_cancion = t
-            bpm = bpm_visual(bpm_en(max(t, 0)))     # el bpm sigue al archivo de la cancion (lo usan los trastes y las notas nuevas)
+                if not audio_sonando and t >= OFFSET_AUDIO_MS:
+                    audio_sonando = True
+                    reproducir_audio(audio)
 
-            if not audio_sonando and t >= OFFSET_AUDIO_MS:
-                audio_sonando = True
-                reproducir_audio(audio)
+                if ahora - o_time >= 0:
+                    o_time = ahora + FRET_INTERVALO_BASE_MS * 60 / bpm      # a mas bpm los trastes salen   mas seguido (misma separacion en pantalla)
+                    if current_fret != 3:
+                        current_fret += 1
+                    else:
+                        current_fret = 0
+                    frets.insert(0, Fret(fret[current_fret], bpm))
 
-            if ahora - o_time >= 0:
-                o_time = ahora + FRET_INTERVALO_BASE_MS * 60 / bpm      # a mas bpm los trastes salen mas seguido (misma separacion en pantalla)
-                if current_fret != 3:
-                    current_fret += 1
-                else:
-                    current_fret = 0
-                frets.insert(0, Fret(fret[current_fret], bpm))
+                # --- aparecen las notas que ya les toca (llegan a la ventana justo en su start_ms) ---
+                while NoteNum < len(orden_spawn) and t >= eventos[orden_spawn[NoteNum]]['spawn_ms']:
+                    ev = eventos[orden_spawn[NoteNum]]
+                    for nota in ev['notas']:
+                        es_star = nota['star_id'] is not None and not hero.frase_perdida(nota['star_id'])
+                        drawable_notes.append(Note_Class(None, nota['lane'], nota['dur'], nota['tipo'], nota    ['star_id'], es_star, ev['bpm'], ev['ms'] + nota['dur']))
+                    NoteNum += 1
 
-            # --- aparecen las notas que ya les toca (llegan a la ventana justo en su start_ms) ---
-            while NoteNum < len(orden_spawn) and t >= eventos[orden_spawn[NoteNum]]['spawn_ms']:
-                ev = eventos[orden_spawn[NoteNum]]
-                for nota in ev['notas']:
-                    es_star = nota['star_id'] is not None and not hero.frase_perdida(nota['star_id'])
-                    drawable_notes.append(Note_Class(None, nota['lane'], nota['dur'], nota['tipo'], nota['star_id'], es_star, ev['bpm'], ev['ms'] + nota['dur']))
-                NoteNum += 1
+                hero.actualizar(clock.get_time(), bpm_en(max(t, 0)))
 
-            hero.actualizar(clock.get_time(), bpm_en(max(t, 0)))
+                draw_background()
+                procesar_golpes()
+                puntuar_sustains(t, bpm_en(max(t, 0)))
+                actualizar_notas()
+                draw_notes(drawable_notes)
+                draw_speakers()
+                draw_hud()
 
-            draw_background()
-            procesar_golpes()
-            puntuar_sustains(t, bpm_en(max(t, 0)))
-            actualizar_notas()
-            draw_notes(drawable_notes)
-            draw_speakers()
-            draw_hud()
+                # --- fin de la cancion: se mostraron todas las notas y ya no queda ninguna en pantalla ---
+                if NoteNum >= len(eventos) and not drawable_notes:
+                    if fin_hasta is None:
+                        fin_hasta = ahora + 1500
+                    elif ahora >= fin_hasta:
+                        motivo = "fin"
 
-            # --- fin de la cancion: se mostraron todas las notas y ya no queda ninguna en pantalla ---
-            if NoteNum >= len(eventos) and not drawable_notes:
-                if fin_hasta is None:
-                    fin_hasta = ahora + 1500
-                elif ahora >= fin_hasta:
-                    motivo = "fin"
+                pygame.display.update()
+                clock.tick(FPS)
+        finally:
+            detener_audio(audio)
+            for sonido in SONIDOS_FALLO:
+                sonido.stop()
+            fondo_cancion = None
+            
+        # SI DECIDIMOS REINICIAR, VOLVEMOS AL INICIO DEL WHILE TRUE
+        if motivo == "reiniciar":
+            continue
 
-            pygame.display.update()
-            clock.tick(FPS)
-    finally:
-        detener_audio(audio)
-        for sonido in SONIDOS_FALLO:
-            sonido.stop()
-        fondo_cancion = None
-
-    resultado = {"terminada": motivo == "fin",
-                 "cerrar": motivo == "cerrar",
-                 "puntaje": marcador.puntaje,
-                 "aciertos": marcador.aciertos,
-                 "fallos": marcador.fallos,
-                 "precision": marcador.precision(),
-                 "mejor_racha": marcador.mejor_racha,
-                 "volumen": volumen_actual,         # los valores de Pausa > Opciones, para que el menu los conserve
-                 "gamepad": gamepad_mode}
-    if motivo == "fin":
-        if pantalla_resultados(resultado, clock) == "cerrar":
-            resultado["cerrar"] = True
-    return resultado
+        resultado = {"terminada": motivo == "fin",
+                     "cerrar": motivo == "cerrar",
+                     "puntaje": marcador.puntaje,
+                     "aciertos": marcador.aciertos,
+                     "fallos": marcador.fallos,
+                     "precision": marcador.precision(),
+                     "mejor_racha": marcador.mejor_racha,
+                     "volumen": volumen_actual,         
+                     "gamepad": gamepad_mode}
+                     
+        if motivo == "fin":
+            if pantalla_resultados(resultado, clock) == "cerrar":
+                resultado["cerrar"] = True
+        return resultado        
 
 
 if __name__ == "__main__":
