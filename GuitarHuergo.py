@@ -19,7 +19,7 @@ FPS = 60
 bpm = 60                    # velocidad VISUAL de las notas: durante la partida se actualiza sola con el BPM de la cancion (valor inicial por defecto)
 
 # --- BPM dinamico -----------------------------------------------------------
-FACTOR_BPM = 0.75           # multiplica el BPM de la cancion antes de usarlo como velocidad (0.75 = notas al 75%). Se cambia en Pausa > Opciones
+FACTOR_BPM = 0.40           # multiplica el BPM de la cancion antes de usarlo como velocidad (0.75 = notas al 75%). Se cambia en Pausa > Opciones
 FACTOR_BPM_MIN = 0.3        # limites que permite el menu de opciones de la pausa
 FACTOR_BPM_MAX = 1.5
 BPM_VISUAL_MIN = 40         # limites de la velocidad visual, para que un BPM muy bajo o muy alto no deje el juego injugable
