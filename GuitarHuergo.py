@@ -19,8 +19,8 @@ FPS = 60
 bpm = 60                    # velocidad VISUAL de las notas: durante la partida se actualiza sola con el BPM de la cancion (valor inicial por defecto)
 
 # --- BPM dinamico -----------------------------------------------------------
-FACTOR_BPM = 0.40           # multiplica el BPM de la cancion antes de usarlo como velocidad (0.75 = notas al 75%). Se cambia en Pausa > Opciones
-FACTOR_BPM_MIN = 0.3        # limites que permite el menu de opciones de la pausa
+FACTOR_BPM = 0.30           # multiplica el BPM de la cancion antes de usarlo como velocidad (0.75 = notas al 75%). Se cambia en Pausa > Opciones
+FACTOR_BPM_MIN = 0.1        # limites que permite el menu de opciones de la pausa
 FACTOR_BPM_MAX = 1.5
 BPM_VISUAL_MIN = 40         # limites de la velocidad visual, para que un BPM muy bajo o muy alto no deje el juego injugable
 BPM_VISUAL_MAX = 240
@@ -38,7 +38,7 @@ CUENTA_REGRESIVA_PAUSA = 3  # segundos de cuenta regresiva al volver de la pausa
 # --- sincronizacion -------------------------------------------------------
 PRE_ROLL_MS = 3000          # tiempo de espera antes de que arranque la musica
 OFFSET_AUDIO_MS = 0         # calibracion (ms): si la musica suena ADELANTADA respecto a las notas ponele un valor positivo, si suena atrasada uno negativo
-VENTANA_MIN = 650           # una nota se puede tocar cuando su centro esta entre estas dos alturas
+VENTANA_MIN = 675           # una nota se puede tocar cuando su centro esta entre estas dos alturas
 VENTANA_MAX = 800
 
 # --- Star notes / Hero Power ----------------------------------------------
@@ -47,7 +47,7 @@ STAR_FRAMES = 30            # cuadros de la animacion de rotacion de la nota Sta
 STAR_ANIM_FPS = 30          # a cuantos cuadros por segundo gira (30 = una vuelta por segundo)
 COLOR_POWER = (90, 200, 255)
 # Trapecio del camino (aprox.) que se tine de azul cuando el Hero Power esta activo: (arriba-izq, arriba-der, abajo-der, abajo-izq)
-HIGHWAY_POLY = [(655, 420), (810, 420), (1136, 900), (390, 900)]
+HIGHWAY_POLY = [(650, 430), (850, 430), (1110, 900), (390, 900)]
 HUD_DERECHA = 1470          # borde derecho de los textos del HUD
 HUD_BARRA_X = 1380          # posicion de la barra de Hero Power
 
@@ -228,9 +228,27 @@ def cargar_assets():
 
     assets = os.path.join(os.path.dirname(os.path.abspath(__file__)), "Assets")
 
-    notecol = pygame.surface.Surface((500,100))
-    notecol.set_alpha(90)
-    notecol.fill((255,255,255))
+    notecol = pygame.Surface((width, height), pygame.SRCALPHA)
+    
+    # Calculamos la inclinación interpolando los puntos de HIGHWAY_POLY
+    y_top = HIGHWAY_POLY[0][1]
+    y_bot = HIGHWAY_POLY[2][1]
+    
+    def get_x(y, x_t, x_b):
+        return x_t + (x_b - x_t) * (y - y_top) / (y_bot - y_top)
+    
+    # Coordenadas X para la altura de VENTANA_MIN (arriba de la zona de golpe)
+    x_tl = get_x(VENTANA_MIN, HIGHWAY_POLY[0][0], HIGHWAY_POLY[3][0])
+    x_tr = get_x(VENTANA_MIN, HIGHWAY_POLY[1][0], HIGHWAY_POLY[2][0])
+    
+    # Coordenadas X para la altura de VENTANA_MAX (abajo de la zona de golpe)
+    x_bl = get_x(VENTANA_MAX, HIGHWAY_POLY[0][0], HIGHWAY_POLY[3][0])
+    x_br = get_x(VENTANA_MAX, HIGHWAY_POLY[1][0], HIGHWAY_POLY[2][0])
+    
+    poly_notecol = [(x_tl, VENTANA_MIN), (x_tr, VENTANA_MIN), (x_br, VENTANA_MAX), (x_bl, VENTANA_MAX)]
+    
+    # Dibujamos la figura translúcida en la superficie
+    pygame.draw.polygon(notecol, (255, 255, 255, 100), poly_notecol)
 
     # Background assets
     bgnd_assets = os.path.join(assets, "Background")  # acceso a la ruta con los assets
@@ -449,7 +467,7 @@ def draw_background():
     else:
         window.fill("black") # CONVIERTE EL FONDO EN NEGRO
 
-    window.blit(notecol,(500,700))
+    window.blit(notecol, (0, 0))
 
     pos_def = (width/2 - background.get_width()/2,height - background.get_height())
 
